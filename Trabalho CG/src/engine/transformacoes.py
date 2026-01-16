@@ -27,6 +27,13 @@ def rotacaoX(a):
     M[2,1], M[2,2] = s, c
     return M
 
+def rotacaoY(a):
+    c, s = math.cos(a), math.sin(a)
+    M = np.eye(4, dtype=np.float32)
+    M[0,0], M[0,2] = c, s
+    M[2,0], M[2,2] = -s, c
+    return M
+
 def look_at(visao, alvo, up):
     f = alvo - visao
     f = f / np.linalg.norm(f)
