@@ -16,6 +16,13 @@ class Inimigo:
         self.burst_gap = 0.12
         self.burst_timer = 0.0
         self.can_shoot = True  # controlado pela main (opportunist)
+        # --- Trechos / leash (Zelda feel)
+        self.home_x = self.x
+        self.home_z = self.z
+        self.leash_radius = 7.0
+        self.trecho_id = -1
+        self.ativo_no_trecho = True  # será controlado pela Fase
+
 
 
         # ---- VIDA (se quiser já começar a usar por mundo)
@@ -118,6 +125,24 @@ class Inimigo:
     def update(self, dt, player):
         if (not self.vivo) or (not player.vivo):
             self.flechas_ativas = []
+            return
+        
+        # Se ainda não "acordou" no trecho, não faz nada (fica parado)
+        if not getattr(self, "ativo_no_trecho", True):
+            return
+
+        # Leash: se saiu muito do território, volta pro ponto inicial
+        hx = getattr(self, "home_x", self.x)
+        hz = getattr(self, "home_z", self.z)
+        leash = float(getattr(self, "leash_radius", 7.0))
+
+        if math.hypot(self.x - hx, self.z - hz) > leash:
+            self.x = hx
+            self.z = hz
+            self.flechas_ativas = []
+            # pequeno atraso para não voltar atirando instant
+            self.atk_timer = 0.2
+            self.atk_timer_range = 0.2
             return
 
         dx = player.x - self.x

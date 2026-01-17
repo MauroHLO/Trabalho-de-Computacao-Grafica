@@ -3,7 +3,6 @@ from OpenGL.GL import *
 import numpy as np
 import math
 
-
 # === Engine ===
 from engine.transformacoes import perspectiva, translacao, escala, rotacaoX, look_at
 from engine.geometrias import criarCubo, criarPlataforma, criarVAO
@@ -11,12 +10,12 @@ from engine.colisao import colisaoINI
 
 # === Game ===
 from game.jogador import Player
-from game.inimigo import Inimigo
 from game.plataforma import Plataforma
 from game.rampa import Rampa
 from game.modelo_blocos import ModeloBlocos
 from game.modelo_inimigos import ModeloInimigos
 from game.render_utils import desenhar_flecha
+from game.fase import Fase, Trecho, SpawnInfo
 
 # === Core ===
 from core.renderizador import desenhar
@@ -37,15 +36,13 @@ WORLD_CFG = {
         "name": "Overworld",
         "sky": (0.52, 0.80, 0.98),
         "tint": (1.0, 1.0, 1.0),
-        "spawn": {"melee": 2, "ranged": 1},
         "melee":  {"hp": 3, "speed": 2.0, "behavior": "chase"},
-        "ranged": {"hp": 2, "speed": 1.5,"behavior": "kite", "fire_cd": 2.2, "burst": 1},
+        "ranged": {"hp": 2, "speed": 1.5, "behavior": "kite", "fire_cd": 2.2, "burst": 1},
     },
     WORLD_ETER: {
         "name": "Eter",
         "sky": (0.20, 0.10, 0.35),
         "tint": (0.75, 0.85, 1.15),
-        "spawn": {"melee": 1, "ranged": 3},
         "melee":  {"hp": 2, "speed": 3.2, "behavior": "backstab"},
         "ranged": {"hp": 3, "speed": 2.0, "behavior": "kite_burst", "fire_cd": 1.8, "burst": 2},
     },
@@ -53,61 +50,33 @@ WORLD_CFG = {
         "name": "Underground",
         "sky": (0.18, 0.03, 0.03),
         "tint": (1.15, 0.70, 0.70),
-        "spawn": {"melee": 4, "ranged": 1},
         "melee":  {"hp": 4, "speed": 1.9, "behavior": "pack_chase"},
         "ranged": {"hp": 1, "speed": 2.2, "behavior": "opportunist", "fire_cd": 2.5, "burst": 1},
     },
 }
 
-import random
-
 def set_uTint(programa, tint):
     loc = glGetUniformLocation(programa, "uTint")
     glUseProgram(programa)
-    glUniform3f(loc, float(tint[0]), float(tint[1]), float(tint[2]))
-
-def spawn_inimigos_do_mundo(cfg, cor_inim=(0.55,0.20,0.20)):
-    inimigos = []
-    # posições simples pré-definidas pra não nascer em cima do player
-    spawns = [(3,2), (-6,-6), (6,-8), (-8,6), (10,2), (-10,2), (2,-12), (-2,12)]
-    random.shuffle(spawns)
-
-    def make(tipo, pos):
-        x,z = pos
-        e = Inimigo(x, z, cor_inim, tipo)
-        prof = cfg[tipo]
-        # esses campos serão lidos no Inimigo.update()
-        e.hp_max = prof.get("hp", e.hp_max)
-        e.hp = e.hp_max
-        e.veloc = prof.get("speed", e.veloc)
-        e.behavior = prof.get("behavior", "chase")
-        # ranged extras
-        e.cooldown_atk_range = prof.get("fire_cd", getattr(e, "cooldown_atk_range", 1.2))
-        e.burst = prof.get("burst", 1)
-        return e
-
-    n_melee  = cfg["spawn"]["melee"]
-    n_ranged = cfg["spawn"]["ranged"]
-
-    for _ in range(n_melee):
-        inimigos.append(make("melee", spawns.pop()))
-    for _ in range(n_ranged):
-        inimigos.append(make("ranged", spawns.pop()))
-
-    return inimigos
+    if loc != -1:
+        glUniform3f(loc, float(tint[0]), float(tint[1]), float(tint[2]))
 
 def inimigo_face_para_player(inimigo, player):
-    """Face (rot Y) para o inimigo olhar na direção do player."""
     dx = player.x - inimigo.x
     dz = player.z - inimigo.z
     if abs(dx) < 1e-6 and abs(dz) < 1e-6:
         return 0.0
     return math.atan2(dx, dz)
 
-
 def player_esta_andando(keys):
     return bool(keys.get(glfw.KEY_W) or keys.get(glfw.KEY_A) or keys.get(glfw.KEY_S) or keys.get(glfw.KEY_D))
 
+def proximo_mundo(m):
+    if m == WORLD_OVER:
+        return WORLD_ETER
+    if m == WORLD_ETER:
+        return WORLD_UNDER
+    return WORLD_OVER
 
 def main():
     if not glfw.init():
@@ -126,7 +95,7 @@ def main():
     glUseProgram(programa)
 
     # =========================
-    # CORES BASE (mundo base)
+    # CORES / MATERIAIS
     # =========================
     pele = (0.90, 0.75, 0.60)
     roupa = (0.15, 0.65, 0.25)
@@ -135,12 +104,10 @@ def main():
 
     inim_corpo = (0.55, 0.20, 0.20)
     inim_cabeca = (0.75, 0.75, 0.75)
-    inim_arma = (0.85, 0.85, 0.85)
 
     metal = (0.85, 0.85, 0.90)
     madeira = (0.45, 0.28, 0.12)
     corda = (0.95, 0.95, 0.95)
-    flecha_cor = (0.85, 0.85, 0.90)
     pena_cor = (0.95, 0.95, 0.95)
 
     ground_cor = (0.33, 0.60, 0.28)
@@ -150,6 +117,15 @@ def main():
 
     hud_bg_cor = (0.15, 0.15, 0.15)
     hud_hp_cor = (0.85, 0.15, 0.15)
+
+    altar_cor = (0.85, 0.85, 0.85)
+    eco_verde = (0.20, 0.95, 0.20)
+    eco_azul  = (0.25, 0.55, 1.00)
+    eco_verm  = (1.00, 0.25, 0.25)
+
+    portal_azul = (0.25, 0.65, 1.00)
+    portal_verm = (1.00, 0.25, 0.25)
+    portal_verd = (0.20, 0.95, 0.20)
 
     # =========================
     # VAOs
@@ -161,7 +137,6 @@ def main():
 
     vao_inim_corpo = criarVAO(*criarCubo(inim_corpo))
     vao_inim_cabeca = criarVAO(*criarCubo(inim_cabeca))
-    vao_inim_arma = criarVAO(*criarCubo(inim_arma))
 
     cubo_ground = criarVAO(*criarCubo(ground_cor))
     cubo_plat1 = criarVAO(*criarCubo(plat1_cor))
@@ -174,9 +149,17 @@ def main():
     vao_metal = criarVAO(*criarCubo(metal))
     vao_madeira = criarVAO(*criarCubo(madeira))
     vao_corda = criarVAO(*criarCubo(corda))
-
-    vao_flecha = criarVAO(*criarCubo(flecha_cor))
     vao_pena = criarVAO(*criarCubo(pena_cor))
+
+    # === Altar/Eco/Portal (visual debug) ===
+    vao_altar = criarVAO(*criarCubo(altar_cor))
+    vao_ecoV  = criarVAO(*criarCubo(eco_verde))
+    vao_ecoA  = criarVAO(*criarCubo(eco_azul))
+    vao_ecoR  = criarVAO(*criarCubo(eco_verm))
+
+    vao_portalA = criarVAO(*criarCubo(portal_azul))
+    vao_portalR = criarVAO(*criarCubo(portal_verm))
+    vao_portalV = criarVAO(*criarCubo(portal_verd))
 
 
     # =========================
@@ -186,7 +169,7 @@ def main():
     modelo_inimigos = ModeloInimigos(vao_inim_corpo, vao_inim_cabeca, vao_metal, vao_madeira, vao_corda)
 
     # =========================
-    # CENÁRIO
+    # CENÁRIO (o mesmo nos 3 mundos)
     # =========================
     plataformas = [
         Plataforma(0, 0, 20, -20, 0, plat1_cor),
@@ -194,45 +177,117 @@ def main():
     ]
     ramp = Rampa(0, -7.5, 8, -8, 0, 4, ramp_cor)
 
+    # =========================
+    # ESTADO DO JOGO
+    # =========================
     player = Player()
+
+    # corredor: esquerda -> direita
+    X_START = -18.0
+    X_END   =  18.0
+
+    # altar/portal no final
+    ALTAR_X, ALTAR_Z = 17.0, 0.0
+    ALTAR_RAIO = 1.2
+
+    # joga o player para o início (templo)
+    player.x = X_START + 1.0
+    player.z = 0.0
+
     mundo_atual = WORLD_OVER
     cfg_mundo = WORLD_CFG[mundo_atual]
-
     set_uTint(programa, cfg_mundo["tint"])
-    inimigos = spawn_inimigos_do_mundo(cfg_mundo, inim_corpo)
 
+    # ecos coletados
+    ecos = {WORLD_OVER: False, WORLD_ETER: False, WORLD_UNDER: False}
+
+    # =========================
+    # TRECHOS (T0..T6)
+    # =========================
+    ZMIN, ZMAX = -10.0, 10.0
+    trechos = [
+        Trecho(0, "Templo", (X_START, -12.0, ZMIN, ZMAX), {
+            WORLD_OVER: [],
+            WORLD_ETER: [],
+            WORLD_UNDER: [],
+        }, chave=False),
+
+        Trecho(1, "Tutorial", (-12.0, -6.0, ZMIN, ZMAX), {
+            WORLD_OVER: [SpawnInfo("melee", -9.0,  0.0)],
+            WORLD_ETER: [SpawnInfo("ranged", -9.0, 3.0)],
+            WORLD_UNDER:[SpawnInfo("melee", -10.0, -2.0), SpawnInfo("melee", -8.0, 2.0)],
+        }, chave=False),
+
+        Trecho(2, "Guarda do Plato", (-6.0, 0.0, ZMIN, ZMAX), {
+            WORLD_OVER: [SpawnInfo("ranged", -2.0, 5.0), SpawnInfo("melee", -3.0, 0.0)],
+            WORLD_ETER: [SpawnInfo("ranged", -2.0, 5.0), SpawnInfo("ranged", -4.0, 4.0)],
+            WORLD_UNDER:[SpawnInfo("melee", -4.0, 0.0), SpawnInfo("melee", -1.0, -2.0), SpawnInfo("ranged", -5.0, 6.0)],
+        }, chave=True),
+
+        Trecho(3, "Travessia", (0.0, 6.0, ZMIN, ZMAX), {
+            WORLD_OVER: [SpawnInfo("melee", 2.0, -2.0), SpawnInfo("ranged", 4.0, 5.0)],
+            WORLD_ETER: [SpawnInfo("ranged", 2.0, 5.0), SpawnInfo("ranged", 5.0, 4.0)],
+            WORLD_UNDER:[SpawnInfo("melee", 2.0, -2.0), SpawnInfo("melee", 4.0, 0.0), SpawnInfo("melee", 5.0, 2.0)],
+        }, chave=True),
+
+        Trecho(4, "Pressao", (6.0, 12.0, ZMIN, ZMAX), {
+            WORLD_OVER: [SpawnInfo("melee", 8.0, -2.0), SpawnInfo("melee", 10.0, 2.0), SpawnInfo("ranged", 11.0, 5.0)],
+            WORLD_ETER: [SpawnInfo("ranged", 8.0, 5.0), SpawnInfo("ranged", 10.0, 4.0), SpawnInfo("ranged", 11.0, 3.0), SpawnInfo("melee", 9.0, -1.0)],
+            WORLD_UNDER:[SpawnInfo("melee", 8.0, -2.0), SpawnInfo("melee", 10.0, 0.0), SpawnInfo("melee", 11.0, 2.0), SpawnInfo("ranged", 12.0, 5.0)],
+        }, chave=True),
+
+        Trecho(5, "Pre-final", (12.0, 16.0, ZMIN, ZMAX), {
+            WORLD_OVER: [SpawnInfo("melee", 13.0, 0.0), SpawnInfo("ranged", 15.0, 5.0)],
+            WORLD_ETER: [SpawnInfo("ranged", 13.0, 5.0), SpawnInfo("ranged", 15.0, 4.0), SpawnInfo("melee", 14.0, -1.0)],
+            WORLD_UNDER:[SpawnInfo("melee", 13.0, 0.0), SpawnInfo("melee", 14.0, -2.0), SpawnInfo("melee", 15.0, 2.0), SpawnInfo("melee", 15.5, 0.0)],
+        }, chave=True),
+
+        Trecho(6, "Eco", (16.0, X_END, ZMIN, ZMAX), {
+            WORLD_OVER: [],
+            WORLD_ETER: [],
+            WORLD_UNDER: [],
+        }, chave=False),
+    ]
+
+    fase = Fase(trechos, leash_radius=7.0)
 
     # =========================
     # INPUT
     # =========================
     keys = {}
 
+    def trocar_mundo(novo_mundo: int):
+        nonlocal mundo_atual, cfg_mundo
+        mundo_atual = novo_mundo
+        cfg_mundo = WORLD_CFG[mundo_atual]
+        set_uTint(programa, cfg_mundo["tint"])
+        fase.reset_mundo()
+
+        # volta ao templo
+        player.x = X_START + 1.0
+        player.z = 0.0
+        player.y = 1.0
+
     def key_cb(win, k, s, a, m):
-        nonlocal mundo_atual, cfg_mundo, inimigos
-        
-        # === controle contínuo (movimento) ===
+        # movimento contínuo
         if a == glfw.PRESS:
             keys[k] = True
         elif a == glfw.RELEASE:
             keys[k] = False
-        
-        # === ataque ===
+
+        # ataque
         if k == glfw.KEY_SPACE and a == glfw.PRESS and player.vivo:
             player.ataque = True
             player.temp = 0
 
-        # === troca de mundo (SEM return!) ===
+        # debug: troca manual (1/2/3)
         if a == glfw.PRESS and k in (glfw.KEY_1, glfw.KEY_2, glfw.KEY_3):
             if k == glfw.KEY_1:
-                mundo_atual = WORLD_OVER
+                trocar_mundo(WORLD_OVER)
             elif k == glfw.KEY_2:
-                mundo_atual = WORLD_ETER
+                trocar_mundo(WORLD_ETER)
             elif k == glfw.KEY_3:
-                mundo_atual = WORLD_UNDER
-
-            cfg_mundo = WORLD_CFG[mundo_atual]
-            set_uTint(programa, cfg_mundo["tint"])
-            inimigos = spawn_inimigos_do_mundo(cfg_mundo, inim_corpo)
+                trocar_mundo(WORLD_UNDER)
 
     glfw.set_key_callback(win, key_cb)
 
@@ -242,6 +297,8 @@ def main():
     # =========================
     # LOOP
     # =========================
+    dbg_t = 0.0
+
     while not glfw.window_should_close(win):
         now = glfw.get_time()
         dt = now - last
@@ -252,40 +309,78 @@ def main():
         if player.vivo:
             player.update(dt, keys, plataformas, ramp)
 
-        for e in inimigos:
-            # =========================
-            # IA OPORTUNISTA (Inferno)
-            # =========================
-            if mundo_atual == WORLD_UNDER:
-                # verifica se existe melee vivo perto do player
-                melee_perto = False
-                for m in inimigos:
-                    if m.vivo and m.tipo == "melee":
-                        d = math.hypot(m.x - player.x, m.z - player.z)
-                        if d < 2.5:  # distância de "vantagem"
-                            melee_perto = True
-                            break
+        # --- update da fase (ativa trecho e spawna inimigos quando entrar)
+        fase.update(player, mundo_atual, cfg_mundo, cor_inim=inim_corpo)
+        inimigos = fase.inimigos_todos()
 
-                # aplica decisão aos rangeds
-                for e in inimigos:
-                    if e.tipo == "ranged":
-                        e.can_shoot = melee_perto
-            else:
-                # fora do inferno, ranged sempre pode atirar
-                for e in inimigos:
-                    if e.tipo == "ranged":
-                        e.can_shoot = True
-            
+        # --- IA oportunista (Underground): ranged só atira se melee estiver perto do player
+        if mundo_atual == WORLD_UNDER:
+            melee_perto = False
+            for m in inimigos:
+                if m.vivo and m.tipo == "melee":
+                    d = math.hypot(m.x - player.x, m.z - player.z)
+                    if d < 2.5:
+                        melee_perto = True
+                        break
             for e in inimigos:
-                e.update(dt, player)
+                if e.tipo == "ranged":
+                    e.can_shoot = melee_perto
+        else:
+            for e in inimigos:
+                if e.tipo == "ranged":
+                    e.can_shoot = True
 
+        # --- update inimigos
+        for e in inimigos:
+            e.update(dt, player)
+
+        # --- ataque do player (hitbox espada)
         atk = player.espada_box() if player.vivo else None
         if atk:
             for e in inimigos:
-                    if e.vivo and colisaoINI(atk, e.aabb()):
-                        e.tomar_dano(1)
+                if e.vivo and colisaoINI(atk, e.aabb()):
+                    e.tomar_dano(1)
 
+        # --- lógica Eco/Portal no final
+        dist_altar = math.hypot(player.x - ALTAR_X, player.z - ALTAR_Z)
 
+        mundo_ok = fase.mundo_completo()
+        eco_coletavel = (not ecos[mundo_atual]) and mundo_ok
+        portal_ativo = ecos[mundo_atual]
+
+        dbg_t += dt
+        if dbg_t > 1.0:
+            dbg_t = 0.0
+            print("DBG mundo:", cfg_mundo["name"],
+                  "trecho:", fase.trecho_atual_id,
+                  "mundo_ok:", mundo_ok,
+                  "eco_já:", ecos[mundo_atual],
+                  "dist_altar:", round(dist_altar, 2),
+                  "playerX:", round(player.x, 2))
+
+        # coleta eco automaticamente ao encostar (simples)
+        if eco_coletavel and dist_altar < ALTAR_RAIO:
+            ecos[mundo_atual] = True
+            portal_ativo = True
+
+        # cores por mundo
+        if mundo_atual == WORLD_OVER:
+            vao_eco = vao_ecoV
+            vao_portal = vao_portalA
+        elif mundo_atual == WORLD_ETER:
+            vao_eco = vao_ecoA
+            vao_portal = vao_portalR
+        else:
+            vao_eco = vao_ecoR
+            vao_portal = vao_portalV
+
+        # entra no portal (após eco coletado)
+        if portal_ativo and dist_altar < ALTAR_RAIO:
+            trocar_mundo(proximo_mundo(mundo_atual))
+
+        # =========================
+        # RENDER
+        # =========================
         sky = cfg_mundo["sky"]
         glClearColor(float(sky[0]), float(sky[1]), float(sky[2]), 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -295,15 +390,15 @@ def main():
         view = look_at(cam_eye, cam_tgt, np.array([0, 1, 0], dtype=np.float32))
         vp = proj @ view
 
-        # Chão
+        # chão
         desenhar(cubo_ground, translacao(0, -0.51, 0) @ escala(40, 1, 40), vp, programa)
 
-        # Plataformas
+        # plataformas
         for p in plataformas:
             vao = cubo_plat1 if p.h == 0 else cubo_plat2
             desenhar(vao, translacao(p.x, p.h - 0.5, p.z) @ escala(p.w, 1, p.d), vp, programa)
 
-        # Rampa
+        # rampa
         ang = math.atan2((ramp.y1 - ramp.y0), abs(ramp.d))
         if ramp.d < 0:
             ang = -ang
@@ -314,7 +409,21 @@ def main():
             vp, programa
         )
 
-        # Player (modelo em blocos) - só desenha se vivo
+        # --- ALTAR (sempre visível no fim)
+        model = translacao(ALTAR_X, 0.0, ALTAR_Z) @ escala(2.0, 0.6, 2.0)
+        desenhar(vao_altar, model, vp, programa)
+
+        # --- ECO (visível quando mundo completo e ainda não coletou)
+        if eco_coletavel:
+            model = translacao(ALTAR_X, 1.3, ALTAR_Z) @ escala(0.6, 0.6, 0.6)
+            desenhar(vao_eco, model, vp, programa)
+
+        # --- PORTAL (visível quando eco do mundo já foi coletado)
+        if portal_ativo:
+            model = translacao(ALTAR_X, 1.4, ALTAR_Z) @ escala(1.2, 2.2, 0.4)
+            desenhar(vao_portal, model, vp, programa)
+
+        # player
         if player.vivo:
             modelo_player.draw_link(
                 desenhar, programa, vp,
@@ -324,7 +433,7 @@ def main():
                 atacando=player.ataque
             )
 
-        # Inimigos (modelos em blocos)
+        # inimigos + flechas
         for e in inimigos:
             if not e.vivo:
                 continue
@@ -340,13 +449,9 @@ def main():
                 px, py, pz = float(f["pos"][0]), float(f["pos"][1]), float(f["pos"][2])
                 vx, vz = float(f["vel"][0]), float(f["vel"][2])
                 yaw = math.atan2(vx, vz)
-
                 desenhar_flecha(desenhar, programa, vp, px, py, pz, yaw, vao_madeira, vao_metal, vao_pena)
 
-
-        # =========================
-        # HUD VIDA (fixo na câmera)
-        # =========================
+        # HUD VIDA
         frac = 0.0
         if player.vida_max > 0:
             frac = max(0.0, min(1.0, player.vida / player.vida_max))
@@ -370,11 +475,9 @@ def main():
 
         glDisable(GL_DEPTH_TEST)
 
-        # fundo
         model = translacao(float(hud_pos[0]), float(hud_pos[1]), float(hud_pos[2])) @ escala(2.8, 0.18, 0.12)
         desenhar(hud_bg, model, vp, programa)
 
-        # vida
         hp_pos = hud_pos + right * (-(1.4) * (1 - frac))
         model = translacao(float(hp_pos[0]), float(hp_pos[1]), float(hp_pos[2])) @ escala(2.8 * frac, 0.14, 0.10)
         desenhar(hud_hp, model, vp, programa)
@@ -384,7 +487,6 @@ def main():
         glfw.swap_buffers(win)
 
     glfw.terminate()
-
 
 if __name__ == "__main__":
     main()
