@@ -1,7 +1,6 @@
-# src/game/fase.py
+from engine.terreno import achar_plataforma_embaixo, clamp_dentro_plataforma
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
-
 from game.inimigo import Inimigo
 
 Bounds = Tuple[float, float, float, float]  # xmin, xmax, zmin, zmax
@@ -58,7 +57,7 @@ class Fase:
                 return t
         return None
 
-    def ativar_trecho(self, t: Trecho, mundo: int, cfg_mundo: dict, cor_inim=(0.55, 0.20, 0.20)):
+    def ativar_trecho(self, t: Trecho, mundo: int, cfg_mundo: dict, plataformas, cor_inim=(0.55, 0.20, 0.20)):
         if t.ativo:
             return
         t.ativo = True
@@ -66,6 +65,31 @@ class Fase:
         inimigos = []
         for sp in t.spawns_por_mundo.get(mundo, []):
             e = Inimigo(sp.x, sp.z, cor_inim, sp.tipo)
+
+            # =========================
+            # CAMADA DO TERRENO (alto vs chão)
+            # - inimigo em plataforma NÃO desce
+            # - inimigo no chão NÃO sobe
+            # - rampa é só pro player
+            # =========================
+            plat = achar_plataforma_embaixo(sp.x, sp.z, plataformas)
+
+            if plat is not None and plat.h > 0.0:
+                # inimigo nasce preso no topo da plataforma
+                e.terrain_layer = "plat"
+                e.plat_ref = plat
+
+                # opcional: puxar um pouco pra dentro pra evitar borda
+                e.x, e.z = clamp_dentro_plataforma(e.x, e.z, plat, margem=0.40)
+
+                # y = topo + half (half=0.5 e tam=1.0, então centro = h + 0.5)
+                e.y = float(plat.h) + 0.5
+            else:
+                # inimigo nasce no chão e fica preso no chão
+                e.terrain_layer = "chao"
+                e.plat_ref = None
+                e.y = 0.5
+
 
             prof = cfg_mundo[sp.tipo]
             # stats por mundo
@@ -95,7 +119,7 @@ class Fase:
             out.extend(t.inimigos)
         return out
 
-    def update(self, player, mundo: int, cfg_mundo: dict, cor_inim=(0.55, 0.20, 0.20)):
+    def update(self, player, mundo: int, cfg_mundo: dict, plataformas, cor_inim=(0.55, 0.20, 0.20)):
         # detecta trecho atual
         t = self.get_trecho(player.x, player.z)
         novo_id = t.id if t else None
@@ -103,7 +127,7 @@ class Fase:
 
         # ativa e acorda inimigos do trecho atual
         if t is not None:
-            self.ativar_trecho(t, mundo, cfg_mundo, cor_inim=cor_inim)
+            self.ativar_trecho(t, mundo, cfg_mundo, plataformas, cor_inim=cor_inim)
             for e in t.inimigos:
                 e.ativo_no_trecho = True
 

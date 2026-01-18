@@ -32,12 +32,12 @@ class Player:
 
         self.inv_timer = 1000  # debug (invencível)
 
-    def update(self, dt, keys, plats, ramp):
+    def update(self, dt, keys, plats, rampas):
         if not self.vivo:
             return
 
-            if self.inv_timer > 0:
-                self.inv_timer -= dt
+        if self.inv_timer > 0:
+            self.inv_timer -= dt
         # =========================
         # MOVIMENTO
         # =========================
@@ -63,13 +63,16 @@ class Player:
         # PAREDES LATERAIS INVISÍVEIS DA RAMPA
         # (impede subir/entrar pela lateral, estilo "parede do bloco")
         # =========================
-        if ramp is not None and hasattr(ramp, "paredes_laterais"):
+        if rampas:
             aabb_player = self.aabb()
-            for parede in ramp.paredes_laterais(espessura=0.18):
-                if colisaoINI(aabb_player, parede):
-                    # reverte o movimento (bloqueia a lateral)
-                    self.x, self.z = old_x, old_z
-                    break
+            for r in rampas:
+                if r is None or not hasattr(r, "paredes_laterais"):
+                    continue
+                for parede in r.paredes_laterais(espessura=0.18):
+                    if colisaoINI(aabb_player, parede):
+                        self.x, self.z = old_x, old_z
+                        break
+
 
         # =========================
         # ALTURA (rampa + plataformas)
@@ -77,9 +80,14 @@ class Player:
         novo_Y = 0.0
 
         # rampa (só aplica se estiver dentro e passando pela frente, se existir _pela_frente)
-        if ramp is not None and ramp.contencao(self.x, self.z):
-            if (not hasattr(ramp, "_pela_frente")) or ramp._pela_frente(self.z):
-                novo_Y = max(novo_Y, float(ramp.altura(self.x, self.z)))
+        if rampas:
+            for r in rampas:
+                if r is None:
+                    continue
+                if r.contencao(self.x, self.z):
+                    if (not hasattr(r, "_pela_frente")) or r._pela_frente(self.z):
+                        novo_Y = max(novo_Y, float(r.altura(self.x, self.z)))
+
 
         # plataformas (pega maior)
         for p in plats:

@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from engine.terreno import clamp_dentro_plataforma
 from engine.colisao import liang_barsky_3d
 
 class Inimigo:
@@ -16,14 +17,13 @@ class Inimigo:
         self.burst_gap = 0.12
         self.burst_timer = 0.0
         self.can_shoot = True  # controlado pela main (opportunist)
+
         # --- Trechos / leash (Zelda feel)
         self.home_x = self.x
         self.home_z = self.z
         self.leash_radius = 7.0
         self.trecho_id = -1
         self.ativo_no_trecho = True  # será controlado pela Fase
-
-
 
         # ---- VIDA (se quiser já começar a usar por mundo)
         self.hp_max = 3 if tipoINI == "melee" else 2
@@ -45,6 +45,13 @@ class Inimigo:
         self.flechas_ativas = []
         self.flecha_speed = 11.0
         self.flecha_ttl = 2.0
+
+        # Camada do terreno:
+        # "chao"  -> não sobe em plataforma
+        # "plat"  -> não desce; preso na plataforma
+        self.terrain_layer = "chao"
+        self.plat_ref = None
+
 
     def tomar_dano(self, dano):
         if not self.vivo:
@@ -122,7 +129,7 @@ class Inimigo:
                 # terminou o burst -> entra no cooldown "grande"
                 self.atk_timer_range = self.cooldown_atk_range
 
-    def update(self, dt, player):
+    def update(self, dt, player, plataformas=None):
         if (not self.vivo) or (not player.vivo):
             self.flechas_ativas = []
             return
@@ -154,6 +161,8 @@ class Inimigo:
         # =========================
         # MOVIMENTO + ATAQUE
         # =========================
+        old_x, old_z = self.x, self.z
+
         if self.tipo == "melee":
             # persegue se longe
             if d > self.alcance_atk:
@@ -177,7 +186,34 @@ class Inimigo:
 
             self.atacar_ranged(player, dt)
 
-        self.y = 0.5 + self.tam / 2
+        # =========================
+        # TRAVA DE CAMADA (alto vs chão)
+        # - se nasceu no platô -> não sai dele
+        # - se nasceu no chão  -> não entra em platô
+        # =========================
+        if self.terrain_layer == "plat" and self.plat_ref is not None:
+            # se tentou sair do retângulo do platô, desfaz
+            if not self.plat_ref.contencao(self.x, self.z):
+                self.x, self.z = old_x, old_z
+
+            # opcional: "puxa" um pouco pra dentro para evitar borda
+            self.x, self.z = clamp_dentro_plataforma(self.x, self.z, self.plat_ref, margem=0.35)
+
+            # y fixo no topo
+            self.y = float(self.plat_ref.h) + 0.5
+
+        else:
+            # inimigo do chão: não pode entrar na área XZ de uma plataforma alta
+            if plataformas:
+                entrou_em_plat = False
+                for p in plataformas:
+                    if p.h > 0.0 and p.contencao(self.x, self.z):
+                        entrou_em_plat = True
+                        break
+                if entrou_em_plat:
+                    self.x, self.z = old_x, old_z
+
+            self.y = 0.5
 
         # =========================
         # ATUALIZA FLECHAS

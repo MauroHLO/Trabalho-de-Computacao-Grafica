@@ -90,8 +90,6 @@ def main():
     glfw.make_context_current(win)
 
     glEnable(GL_DEPTH_TEST)
-    
-
 
     programa = criarPrograma(VERT, FRAG)
     glUseProgram(programa)
@@ -180,11 +178,32 @@ def main():
     # =========================
     # CENÁRIO
     # =========================
-    plataformas = [
-        Plataforma(0, 0,   20, -20, 0, plat1_cor),
-        Plataforma(0, -15, 10, -10, 4, plat2_cor),
-    ]
-    ramp = Rampa(0, -7.5, 8, -8, 0, 4, ramp_cor)
+    def criar_mapa(plat1_cor, plat2_cor, ramp_cor):
+        # chão (grande)
+        plataformas = [
+            Plataforma(0, 0,  42, -42, 0, plat1_cor),
+        ]
+
+        # 3 platôs (terrenos altos) ao longo do caminho (eixo X)
+        # (x, z, w, d, h)
+        plataformas += [
+            Plataforma(-8.0,  6.0,  8.0, -8.0, 3.5, plat2_cor),   # Platô A (alto, lado +Z)
+            Plataforma( 6.0, -6.0, 10.0, -8.0, 4.0, plat2_cor),   # Platô B (alto, lado -Z)
+            Plataforma(12.0,  5.0,  7.0, -6.0, 3.0, plat2_cor),   # Platô C (alto, lado +Z)
+        ]
+
+        # 3 rampas conectando chão -> platôs
+        rampas = [
+            Rampa(-8.0,  1.5,  6.0,  6.0, 0.0, 3.5, ramp_cor),  # sobe para Platô A
+            Rampa( 6.0, -2.0,  6.0, -7.0, 0.0, 4.0, ramp_cor),  # sobe para Platô B
+            Rampa(12.0,  1.5,  5.0,  6.0, 0.0, 3.0, ramp_cor),  # sobe para Platô C
+        ]
+
+        return plataformas, rampas
+
+
+    plataformas, rampas = criar_mapa(plat1_cor, plat2_cor, ramp_cor)
+
 
     # =========================
     # ESTADO DO JOGO
@@ -210,44 +229,48 @@ def main():
     # TRECHOS (T0..T6)
     # =========================
     ZMIN, ZMAX = -10.0, 10.0
+
     trechos = [
-        Trecho(0, "Templo", (X_START, -12.0, ZMIN, ZMAX), {
+        Trecho(0, "Entrada", (X_START, -12.0, ZMIN, ZMAX), {
             WORLD_OVER: [],
             WORLD_ETER: [],
             WORLD_UNDER: [],
         }, chave=False),
 
-        Trecho(1, "Tutorial", (-12.0, -6.0, ZMIN, ZMAX), {
-            WORLD_OVER: [SpawnInfo("melee", -9.0,  0.0)],
-            WORLD_ETER: [SpawnInfo("ranged", -9.0, 3.0)],
-            WORLD_UNDER:[SpawnInfo("melee", -10.0, -2.0), SpawnInfo("melee", -8.0, 2.0)],
-        }, chave=False),
-
-        Trecho(2, "Guarda do Plato", (-6.0, 0.0, ZMIN, ZMAX), {
-            WORLD_OVER: [SpawnInfo("ranged", -2.0, 5.0), SpawnInfo("melee", -3.0, 0.0)],
-            WORLD_ETER: [SpawnInfo("ranged", -2.0, 5.0), SpawnInfo("ranged", -4.0, 4.0)],
-            WORLD_UNDER:[SpawnInfo("melee", -4.0, 0.0), SpawnInfo("melee", -1.0, -2.0), SpawnInfo("ranged", -5.0, 6.0)],
+        Trecho(1, "Encontro 1", (-12.0, -6.0, ZMIN, ZMAX), {
+            WORLD_OVER:  [SpawnInfo("melee", -10.0,  0.0)],
+            WORLD_ETER:  [SpawnInfo("ranged", -10.0,  3.0)],
+            WORLD_UNDER: [SpawnInfo("melee", -10.5, -2.0), SpawnInfo("melee", -8.5, 2.0)],
         }, chave=True),
 
-        Trecho(3, "Travessia", (0.0, 6.0, ZMIN, ZMAX), {
-            WORLD_OVER: [SpawnInfo("melee", 2.0, -2.0), SpawnInfo("ranged", 4.0, 5.0)],
-            WORLD_ETER: [SpawnInfo("ranged", 2.0, 5.0), SpawnInfo("ranged", 5.0, 4.0)],
-            WORLD_UNDER:[SpawnInfo("melee", 2.0, -2.0), SpawnInfo("melee", 4.0, 0.0), SpawnInfo("melee", 5.0, 2.0)],
+        # perto do Platô A (x ~ -8, z ~ +6)
+        Trecho(2, "Platô A", (-6.0,  2.0, ZMIN, ZMAX), {
+            WORLD_OVER:  [SpawnInfo("melee", -4.0, 0.0), SpawnInfo("ranged", -2.5, 4.0)],
+            WORLD_ETER:  [SpawnInfo("ranged", -8.0,  6.0), SpawnInfo("ranged", -6.5, 5.0)],  # no topo!
+            WORLD_UNDER: [SpawnInfo("melee", -4.0, 0.0), SpawnInfo("ranged", -8.0, 6.0)],
         }, chave=True),
 
-        Trecho(4, "Pressao", (6.0, 12.0, ZMIN, ZMAX), {
-            WORLD_OVER: [SpawnInfo("melee", 8.0, -2.0), SpawnInfo("melee", 10.0, 2.0), SpawnInfo("ranged", 11.0, 5.0)],
-            WORLD_ETER: [SpawnInfo("ranged", 8.0, 5.0), SpawnInfo("ranged", 10.0, 4.0), SpawnInfo("ranged", 11.0, 3.0), SpawnInfo("melee", 9.0, -1.0)],
-            WORLD_UNDER:[SpawnInfo("melee", 8.0, -2.0), SpawnInfo("melee", 10.0, 0.0), SpawnInfo("melee", 11.0, 2.0), SpawnInfo("ranged", 12.0, 5.0)],
+        # zona central caminhada
+        Trecho(3, "Travessia", (2.0,  8.0, ZMIN, ZMAX), {
+            WORLD_OVER:  [SpawnInfo("melee", 3.0, -2.0), SpawnInfo("ranged", 6.0, 4.0)],
+            WORLD_ETER:  [SpawnInfo("ranged", 6.0, -6.0), SpawnInfo("ranged", 8.0, -5.0)],   # perto do Platô B
+            WORLD_UNDER: [SpawnInfo("melee", 3.0, -2.0), SpawnInfo("melee", 6.0, 0.0)],
         }, chave=True),
 
-        Trecho(5, "Pre-final", (12.0, 16.0, ZMIN, ZMAX), {
-            WORLD_OVER: [SpawnInfo("melee", 13.0, 0.0), SpawnInfo("ranged", 15.0, 5.0)],
-            WORLD_ETER: [SpawnInfo("ranged", 13.0, 5.0), SpawnInfo("ranged", 15.0, 4.0), SpawnInfo("melee", 14.0, -1.0)],
-            WORLD_UNDER:[SpawnInfo("melee", 13.0, 0.0), SpawnInfo("melee", 14.0, -2.0), SpawnInfo("melee", 15.0, 2.0), SpawnInfo("melee", 15.5, 0.0)],
+        # perto do Platô C (x ~ 12, z ~ +5)
+        Trecho(4, "Platô C", (8.0,  14.0, ZMIN, ZMAX), {
+            WORLD_OVER:  [SpawnInfo("melee", 10.0, 0.0), SpawnInfo("ranged", 13.0, 4.0)],
+            WORLD_ETER:  [SpawnInfo("ranged", 12.0, 5.0), SpawnInfo("ranged", 13.0, 4.0), SpawnInfo("melee", 10.0, -1.0)],
+            WORLD_UNDER: [SpawnInfo("melee", 10.0, 0.0), SpawnInfo("ranged", 12.0, 5.0)],
         }, chave=True),
 
-        Trecho(6, "Eco", (16.0, X_END, ZMIN, ZMAX), {
+        Trecho(5, "Pré-Altar", (14.0, 16.0, ZMIN, ZMAX), {
+            WORLD_OVER:  [SpawnInfo("melee", 14.5, 0.0)],
+            WORLD_ETER:  [SpawnInfo("ranged", 14.5, 4.0), SpawnInfo("melee", 14.0, -1.0)],
+            WORLD_UNDER: [SpawnInfo("melee", 14.2, 0.0), SpawnInfo("melee", 15.2, 1.5)],
+        }, chave=True),
+
+        Trecho(6, "Altar", (16.0, X_END, ZMIN, ZMAX), {
             WORLD_OVER: [],
             WORLD_ETER: [],
             WORLD_UNDER: [],
@@ -308,9 +331,9 @@ def main():
         glfw.poll_events()
 
         if player.vivo:
-            player.update(dt, keys, plataformas, ramp)
+            player.update(dt, keys, plataformas, rampas)
 
-        fase.update(player, mundo_atual, cfg_mundo, cor_inim=inim_corpo)
+        fase.update(player, mundo_atual, cfg_mundo, plataformas, cor_inim=inim_corpo)
         inimigos = fase.inimigos_todos()
 
         if mundo_atual == WORLD_UNDER:
@@ -330,7 +353,7 @@ def main():
                     e.can_shoot = True
 
         for e in inimigos:
-            e.update(dt, player)
+            e.update(dt, player, plataformas)
 
         atk = player.espada_box() if player.vivo else None
         if atk:
@@ -407,14 +430,18 @@ def main():
                 )
 
 
-        # ✅ RAMPA SÓLIDA (prisma) - substitui a “folha” diagonal
-        sz = abs(ramp.d)
-        sz_draw = -sz if ramp.d < 0 else sz
-        desenhar(
-            vao_rampa_solida,
-            translacao(ramp.x, ramp.y0 + 0.001, ramp.z) @ escala(ramp.w, (ramp.y1 - ramp.y0), sz_draw),
-            vp, programa
-        )
+        # ✅ RAMPAS SÓLIDAS (todas)
+        for r in rampas:
+            sz = abs(r.d)
+            sz_draw = -sz if r.d < 0 else sz
+
+            desenhar(
+                vao_rampa_solida,
+                translacao(r.x, r.y0 + 0.001, r.z)
+                @ escala(r.w, (r.y1 - r.y0), sz_draw),
+                vp, programa
+            )
+
 
         model = translacao(ALTAR_X, 0.0, ALTAR_Z) @ escala(2.0, 0.6, 2.0)
         desenhar(vao_altar, model, vp, programa)
