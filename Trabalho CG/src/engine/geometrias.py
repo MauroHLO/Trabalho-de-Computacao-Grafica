@@ -1,30 +1,60 @@
 import numpy as np
 from OpenGL.GL import *
-def criarCubo(cor=[0.7,0.7,0.7]):
-    # cubo com cor aplicada a todos os vértices
-    c = cor
+
+import numpy as np
+
+def criarCubo(cor=(1.0, 1.0, 1.0)):
     verts = np.array([
-        -0.5,-0.5,-0.5, *c,
-         0.5,-0.5,-0.5, *c,
-         0.5, 0.5,-0.5, *c,
-        -0.5, 0.5,-0.5, *c,
-        -0.5,-0.5, 0.5, *c,
-         0.5,-0.5, 0.5, *c,
-         0.5, 0.5, 0.5, *c,
-        -0.5, 0.5, 0.5, *c
+        # FRENTE (Z+)
+        -0.5,-0.5, 0.5,   0,0,1,
+         0.5,-0.5, 0.5,   0,0,1,
+         0.5, 0.5, 0.5,   0,0,1,
+        -0.5, 0.5, 0.5,   0,0,1,
+
+        # TRAS (Z-)
+         0.5,-0.5,-0.5,   0,0,-1,
+        -0.5,-0.5,-0.5,   0,0,-1,
+        -0.5, 0.5,-0.5,   0,0,-1,
+         0.5, 0.5,-0.5,   0,0,-1,
+
+        # ESQUERDA (X-)
+        -0.5,-0.5,-0.5,  -1,0,0,
+        -0.5,-0.5, 0.5,  -1,0,0,
+        -0.5, 0.5, 0.5,  -1,0,0,
+        -0.5, 0.5,-0.5,  -1,0,0,
+
+        # DIREITA (X+)
+         0.5,-0.5, 0.5,   1,0,0,
+         0.5,-0.5,-0.5,   1,0,0,
+         0.5, 0.5,-0.5,   1,0,0,
+         0.5, 0.5, 0.5,   1,0,0,
+
+        # CIMA (Y+)
+        -0.5, 0.5, 0.5,   0,1,0,
+         0.5, 0.5, 0.5,   0,1,0,
+         0.5, 0.5,-0.5,   0,1,0,
+        -0.5, 0.5,-0.5,   0,1,0,
+
+        # BAIXO (Y-)
+        -0.5,-0.5,-0.5,   0,-1,0,
+         0.5,-0.5,-0.5,   0,-1,0,
+         0.5,-0.5, 0.5,   0,-1,0,
+        -0.5,-0.5, 0.5,   0,-1,0,
     ], dtype=np.float32)
 
     idx = np.array([
-        0,1,2, 2,3,0,
-        4,5,6, 6,7,4,
-        4,5,1, 1,0,4,
-        7,6,2, 2,3,7,
-        5,6,2, 2,1,5,
-        4,7,3, 3,0,4
+         0, 1, 2,  2, 3, 0,
+         4, 5, 6,  6, 7, 4,
+         8, 9,10, 10,11, 8,
+        12,13,14, 14,15,12,
+        16,17,18, 18,19,16,
+        20,21,22, 22,23,20,
     ], dtype=np.uint32)
-    return verts, idx
 
-def criarPlataforma(cor=[0.4,0.8,0.4]):
+    return verts, idx, cor
+
+
+def criarPlataforma(cor=(1,1,1)):
     c = cor
     verts = np.array([
         -0.5,0, -0.5, *c,
@@ -34,9 +64,9 @@ def criarPlataforma(cor=[0.4,0.8,0.4]):
     ], dtype=np.float32)
 
     idx = np.array([0,1,2, 2,3,0], dtype=np.uint32)
-    return verts, idx
+    return verts, idx, cor
 
-def criarVAO(verts, idx):
+def criarVAO(verts, idx, cor=(1.0, 1.0, 1.0)):
     vao = glGenVertexArrays(1)
     glBindVertexArray(vao)
 
@@ -48,11 +78,17 @@ def criarVAO(verts, idx):
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx.nbytes, idx, GL_STATIC_DRAW)
 
-    stride = (3+3)*4
+    stride = (3 + 3) * 4  # pos + normal
+
     glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,stride,ctypes.c_void_p(0))
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
+
     glEnableVertexAttribArray(1)
-    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,stride,ctypes.c_void_p(12))
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(12))
 
     glBindVertexArray(0)
-    return vao, vbo, ebo, idx.size
+
+    # 👇 agora devolve o tint junto no tuple
+    return vao, vbo, ebo, idx.size, cor
+
+
