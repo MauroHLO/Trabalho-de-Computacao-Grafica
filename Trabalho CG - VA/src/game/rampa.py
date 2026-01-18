@@ -7,8 +7,8 @@ class Rampa:
     def _bounds(self):
         x_min = min(self.x - self.w/2, self.x + self.w/2)
         x_max = max(self.x - self.w/2, self.x + self.w/2)
-        z_min = min(self.z - self.d/1.2, self.z + self.d/1.2)
-        z_max = max(self.z - self.d/1.2, self.z + self.d/1.2)
+        z_min = min(self.z - self.d/2.3, self.z + self.d/2.3)
+        z_max = max(self.z - self.d/2.3, self.z + self.d/2.3)
         return x_min, x_max, z_min, z_max
 
     def contencao(self, px, pz):

@@ -184,14 +184,16 @@ def main():
         plataformas = [
             # chão base (grande)
             Plataforma(0, 0,  42, -42, 0, plat1_cor),
+
+            # ====== PAREDES FINAS DE BORDA (INVISÍVEIS) ======
             # esquerda
-            Plataforma(-22, 0, 1.0, -42.0, 10.0, cor_dummy),
+            Plataforma(-22, 0, 1.0, -42.0, 10.0, cor_dummy, visivel=False),
             # direita
-            Plataforma(22, 0, 1.0, -42.0, 10.0, cor_dummy),
+            Plataforma(22, 0, 1.0, -42.0, 10.0, cor_dummy, visivel=False),
             # cima
-            Plataforma(0, 22, 42.0, -1.0, 10.0, cor_dummy),
+            Plataforma(0, 22, 42.0, -1.0, 10.0, cor_dummy, visivel=False),
             # baixo
-            Plataforma(0, -22, 42.0, -1.0, 10.0, cor_dummy),
+            Plataforma(0, -22, 42.0, -1.0, 10.0, cor_dummy, visivel=False),
         ]
 
         # A ideia aqui:
@@ -217,7 +219,6 @@ def main():
         ]
 
         # ---- GARGALOS / CURVAS (blocos que invadem o vale) ----
-        # Mantém o estilo "orgânico", mas sem roubar as laterais.
         plataformas += [
             Plataforma(-7.0,  8.0,  8.0, -6.0, H_WALL, plat2_cor),  # empurra de cima
             Plataforma( 6.5, -9.0,  7.0, -6.0, H_WALL, plat2_cor),  # empurra de baixo (mais "pra trás")
@@ -225,11 +226,9 @@ def main():
         ]
 
         # ---- PLATÔS ACESSÍVEIS (ranged em cima) ----
-        # Platô 1 (lado +Z)
         plat1 = Plataforma(-3.5,  7.5,  6.5, -5.5, 3.5, plat2_cor)
         plataformas += [plat1]
 
-        # Platô 2 (lado -Z)
         plat2 = Plataforma(11.5, -7.8,  7.0, -6.0, 4.0, plat2_cor)
         plataformas += [plat2]
 
@@ -240,6 +239,7 @@ def main():
         ]
 
         return plataformas, rampas
+
 
 
     plataformas, rampas = criar_mapa(plat1_cor, plat2_cor, ramp_cor)
@@ -436,7 +436,7 @@ def main():
         glClearColor(float(sky[0]), float(sky[1]), float(sky[2]), 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        cam_eye = np.array([player.x - 8, player.y + 22, player.z], dtype=np.float32)
+        cam_eye = np.array([player.x - 22, player.y + 40, player.z], dtype=np.float32)
         cam_tgt = np.array([player.x, player.y, player.z], dtype=np.float32)
         view = look_at(cam_eye, cam_tgt, np.array([0, 1, 0], dtype=np.float32))
         vp = proj @ view
@@ -444,9 +444,13 @@ def main():
         desenhar(cubo_ground, translacao(0, -0.51, 0) @ escala(40, 1, 40), vp, programa)
 
         for p in plataformas:
+
+            # pula plataformas invisíveis (paredes)
+            if not getattr(p, "visivel", True):
+                continue
+
             vao = cubo_plat1 if p.h == 0 else cubo_plat2
 
-            # plataforma do chão (fininha, só “superfície”)
             if p.h == 0:
                 desenhar(
                     vao,
@@ -454,13 +458,13 @@ def main():
                     vp, programa
                 )
             else:
-                # plataforma alta vira um BLOCO que encosta no chão (base em y=0)
                 altura = float(p.h)
                 desenhar(
                     vao,
                     translacao(p.x, altura / 2.0, p.z) @ escala(p.w, altura, p.d),
                     vp, programa
                 )
+
 
 
         # ✅ RAMPAS SÓLIDAS (todas)
