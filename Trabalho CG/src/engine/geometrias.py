@@ -1,60 +1,31 @@
 import numpy as np
+import ctypes
 from OpenGL.GL import *
 
-import numpy as np
-
-def criarCubo(cor=(1.0, 1.0, 1.0)):
+def criarCubo(cor=[0.7,0.7,0.7]):
+    c = cor
     verts = np.array([
-        # FRENTE (Z+)
-        -0.5,-0.5, 0.5,   0,0,1,
-         0.5,-0.5, 0.5,   0,0,1,
-         0.5, 0.5, 0.5,   0,0,1,
-        -0.5, 0.5, 0.5,   0,0,1,
-
-        # TRAS (Z-)
-         0.5,-0.5,-0.5,   0,0,-1,
-        -0.5,-0.5,-0.5,   0,0,-1,
-        -0.5, 0.5,-0.5,   0,0,-1,
-         0.5, 0.5,-0.5,   0,0,-1,
-
-        # ESQUERDA (X-)
-        -0.5,-0.5,-0.5,  -1,0,0,
-        -0.5,-0.5, 0.5,  -1,0,0,
-        -0.5, 0.5, 0.5,  -1,0,0,
-        -0.5, 0.5,-0.5,  -1,0,0,
-
-        # DIREITA (X+)
-         0.5,-0.5, 0.5,   1,0,0,
-         0.5,-0.5,-0.5,   1,0,0,
-         0.5, 0.5,-0.5,   1,0,0,
-         0.5, 0.5, 0.5,   1,0,0,
-
-        # CIMA (Y+)
-        -0.5, 0.5, 0.5,   0,1,0,
-         0.5, 0.5, 0.5,   0,1,0,
-         0.5, 0.5,-0.5,   0,1,0,
-        -0.5, 0.5,-0.5,   0,1,0,
-
-        # BAIXO (Y-)
-        -0.5,-0.5,-0.5,   0,-1,0,
-         0.5,-0.5,-0.5,   0,-1,0,
-         0.5,-0.5, 0.5,   0,-1,0,
-        -0.5,-0.5, 0.5,   0,-1,0,
+        -0.5,-0.5,-0.5, *c,
+         0.5,-0.5,-0.5, *c,
+         0.5, 0.5,-0.5, *c,
+        -0.5, 0.5,-0.5, *c,
+        -0.5,-0.5, 0.5, *c,
+         0.5,-0.5, 0.5, *c,
+         0.5, 0.5, 0.5, *c,
+        -0.5, 0.5, 0.5, *c
     ], dtype=np.float32)
 
     idx = np.array([
-         0, 1, 2,  2, 3, 0,
-         4, 5, 6,  6, 7, 4,
-         8, 9,10, 10,11, 8,
-        12,13,14, 14,15,12,
-        16,17,18, 18,19,16,
-        20,21,22, 22,23,20,
+        0,1,2, 2,3,0,
+        4,5,6, 6,7,4,
+        4,5,1, 1,0,4,
+        7,6,2, 2,3,7,
+        5,6,2, 2,1,5,
+        4,7,3, 3,0,4
     ], dtype=np.uint32)
+    return verts, idx
 
-    return verts, idx, cor
-
-
-def criarPlataforma(cor=(1,1,1)):
+def criarPlataforma(cor=[0.4,0.8,0.4]):
     c = cor
     verts = np.array([
         -0.5,0, -0.5, *c,
@@ -64,9 +35,92 @@ def criarPlataforma(cor=(1,1,1)):
     ], dtype=np.float32)
 
     idx = np.array([0,1,2, 2,3,0], dtype=np.uint32)
-    return verts, idx, cor
+    return verts, idx
 
-def criarVAO(verts, idx, cor=(1.0, 1.0, 1.0)):
+def criarRampaSolida(cor=[0.64, 0.48, 0.24]):
+    """
+    Rampa sólida (prisma triangular), totalmente fechada.
+    A face inclinada está com winding CORRETO (CCW),
+    então NÃO fica transparente com GL_CULL_FACE ligado.
+    """
+    c = cor
+
+    # Vértices
+    # base (y = 0)
+    # topo sobe até y = 1 no final (z = +0.5)
+    verts = np.array([
+        # base
+        -0.5, 0.0, -0.5, *c,  # 0
+         0.5, 0.0, -0.5, *c,  # 1
+         0.5, 0.0,  0.5, *c,  # 2
+        -0.5, 0.0,  0.5, *c,  # 3
+
+        # topo inclinado (final da rampa)
+        -0.5, 1.0,  0.5, *c,  # 4
+         0.5, 1.0,  0.5, *c,  # 5
+    ], dtype=np.float32)
+
+    # Índices (triângulos)
+    idx = np.array([
+        # base (embaixo)
+        0, 2, 1,
+        0, 3, 2,
+
+        # topo inclinado (CORRIGIDO – CCW)
+        2, 3, 4,
+        2, 4, 5,
+
+        # lateral esquerda
+        0, 3, 4,
+        0, 4, 0,  # degenerate evitado depois
+
+        # lateral direita
+        1, 5, 2,
+        1, 1, 5,  # degenerate evitado depois
+    ], dtype=np.uint32)
+
+    # === versão FINAL (sem triângulos degenerados, totalmente fechada) ===
+    verts = np.array([
+        # base
+        -0.5, 0.0, -0.5, *c,  # 0
+         0.5, 0.0, -0.5, *c,  # 1
+         0.5, 0.0,  0.5, *c,  # 2
+        -0.5, 0.0,  0.5, *c,  # 3
+
+        # topo inclinado
+        -0.5, 1.0,  0.5, *c,  # 4
+         0.5, 1.0,  0.5, *c,  # 5
+
+        # duplicados para fechar traseira corretamente
+        -0.5, 0.0, -0.5, *c,  # 6
+         0.5, 0.0, -0.5, *c,  # 7
+    ], dtype=np.float32)
+
+    idx = np.array([
+        # base
+        0, 2, 1,
+        0, 3, 2,
+
+        # topo inclinado (CORRETO)
+        2, 3, 4,
+        2, 4, 5,
+
+        # lateral esquerda
+        0, 3, 4,
+        0, 4, 6,
+
+        # lateral direita
+        1, 7, 5,
+        1, 5, 2,
+
+        # traseira
+        0, 6, 7,
+        0, 7, 1,
+    ], dtype=np.uint32)
+
+    return verts, idx
+
+def criarVAO(verts, idx):
     vao = glGenVertexArrays(1)
     glBindVertexArray(vao)
 
@@ -78,17 +132,11 @@ def criarVAO(verts, idx, cor=(1.0, 1.0, 1.0)):
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx.nbytes, idx, GL_STATIC_DRAW)
 
-    stride = (3 + 3) * 4  # pos + normal
-
+    stride = (3+3)*4
     glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
-
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,stride,ctypes.c_void_p(0))
     glEnableVertexAttribArray(1)
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(12))
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,stride,ctypes.c_void_p(12))
 
     glBindVertexArray(0)
-
-    # 👇 agora devolve o tint junto no tuple
-    return vao, vbo, ebo, idx.size, cor
-
-
+    return vao, vbo, ebo, idx.size

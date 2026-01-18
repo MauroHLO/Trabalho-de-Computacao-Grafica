@@ -4,8 +4,8 @@ import numpy as np
 import math
 
 # === Engine ===
-from engine.transformacoes import perspectiva, translacao, escala, rotacaoX, look_at
-from engine.geometrias import criarCubo, criarPlataforma, criarVAO
+from engine.transformacoes import perspectiva, translacao, escala, look_at
+from engine.geometrias import criarCubo, criarPlataforma, criarRampaSolida, criarVAO
 from engine.colisao import colisaoINI
 
 # === Game ===
@@ -90,6 +90,8 @@ def main():
     glfw.make_context_current(win)
 
     glEnable(GL_DEPTH_TEST)
+    
+
 
     programa = criarPrograma(VERT, FRAG)
     glUseProgram(programa)
@@ -100,20 +102,20 @@ def main():
     pele = (0.90, 0.75, 0.60)
     roupa = (0.15, 0.65, 0.25)
     bota = (0.20, 0.12, 0.06)
-    det = (0.55, 0.35, 0.10)
+    det  = (0.55, 0.35, 0.10)
 
-    inim_corpo = (0.55, 0.20, 0.20)
+    inim_corpo  = (0.55, 0.20, 0.20)
     inim_cabeca = (0.75, 0.75, 0.75)
 
-    metal = (0.85, 0.85, 0.90)
+    metal   = (0.85, 0.85, 0.90)
     madeira = (0.45, 0.28, 0.12)
-    corda = (0.95, 0.95, 0.95)
+    corda   = (0.95, 0.95, 0.95)
     pena_cor = (0.95, 0.95, 0.95)
 
     ground_cor = (0.33, 0.60, 0.28)
-    plat1_cor = (0.58, 0.42, 0.20)
-    plat2_cor = (0.70, 0.55, 0.30)
-    ramp_cor = (0.64, 0.48, 0.24)
+    plat1_cor  = (0.58, 0.42, 0.20)
+    plat2_cor  = (0.70, 0.55, 0.30)
+    ramp_cor   = (0.64, 0.48, 0.24)
 
     hud_bg_cor = (0.15, 0.15, 0.15)
     hud_hp_cor = (0.85, 0.15, 0.15)
@@ -130,28 +132,29 @@ def main():
     # =========================
     # VAOs
     # =========================
-    vao_pele = criarVAO(*criarCubo(pele))
+    vao_pele  = criarVAO(*criarCubo(pele))
     vao_roupa = criarVAO(*criarCubo(roupa))
-    vao_bota = criarVAO(*criarCubo(bota))
-    vao_det = criarVAO(*criarCubo(det))
+    vao_bota  = criarVAO(*criarCubo(bota))
+    vao_det   = criarVAO(*criarCubo(det))
 
-    vao_inim_corpo = criarVAO(*criarCubo(inim_corpo))
+    vao_inim_corpo  = criarVAO(*criarCubo(inim_corpo))
     vao_inim_cabeca = criarVAO(*criarCubo(inim_cabeca))
 
     cubo_ground = criarVAO(*criarCubo(ground_cor))
-    cubo_plat1 = criarVAO(*criarCubo(plat1_cor))
-    cubo_plat2 = criarVAO(*criarCubo(plat2_cor))
-    plane_ramp = criarVAO(*criarPlataforma(ramp_cor))
+    cubo_plat1  = criarVAO(*criarCubo(plat1_cor))
+    cubo_plat2  = criarVAO(*criarCubo(plat2_cor))
+
+    # ✅ rampa sólida (prisma)
+    vao_rampa_solida = criarVAO(*criarRampaSolida(ramp_cor))
 
     hud_bg = criarVAO(*criarCubo(hud_bg_cor))
     hud_hp = criarVAO(*criarCubo(hud_hp_cor))
 
-    vao_metal = criarVAO(*criarCubo(metal))
+    vao_metal   = criarVAO(*criarCubo(metal))
     vao_madeira = criarVAO(*criarCubo(madeira))
-    vao_corda = criarVAO(*criarCubo(corda))
-    vao_pena = criarVAO(*criarCubo(pena_cor))
+    vao_corda   = criarVAO(*criarCubo(corda))
+    vao_pena    = criarVAO(*criarCubo(pena_cor))
 
-    # === Altar/Eco/Portal (visual debug) ===
     vao_altar = criarVAO(*criarCubo(altar_cor))
     vao_ecoV  = criarVAO(*criarCubo(eco_verde))
     vao_ecoA  = criarVAO(*criarCubo(eco_azul))
@@ -161,18 +164,17 @@ def main():
     vao_portalR = criarVAO(*criarCubo(portal_verm))
     vao_portalV = criarVAO(*criarCubo(portal_verd))
 
-
     # =========================
     # MODELOS
     # =========================
-    modelo_player = ModeloBlocos(vao_pele, vao_roupa, vao_bota, vao_det, vao_metal, vao_madeira)
+    modelo_player  = ModeloBlocos(vao_pele, vao_roupa, vao_bota, vao_det, vao_metal, vao_madeira)
     modelo_inimigos = ModeloInimigos(vao_inim_corpo, vao_inim_cabeca, vao_metal, vao_madeira, vao_corda)
 
     # =========================
-    # CENÁRIO (o mesmo nos 3 mundos)
+    # CENÁRIO
     # =========================
     plataformas = [
-        Plataforma(0, 0, 20, -20, 0, plat1_cor),
+        Plataforma(0, 0,   20, -20, 0, plat1_cor),
         Plataforma(0, -15, 10, -10, 4, plat2_cor),
     ]
     ramp = Rampa(0, -7.5, 8, -8, 0, 4, ramp_cor)
@@ -182,15 +184,12 @@ def main():
     # =========================
     player = Player()
 
-    # corredor: esquerda -> direita
     X_START = -18.0
     X_END   =  18.0
 
-    # altar/portal no final
     ALTAR_X, ALTAR_Z = 17.0, 0.0
     ALTAR_RAIO = 1.2
 
-    # joga o player para o início (templo)
     player.x = X_START + 1.0
     player.z = 0.0
 
@@ -198,7 +197,6 @@ def main():
     cfg_mundo = WORLD_CFG[mundo_atual]
     set_uTint(programa, cfg_mundo["tint"])
 
-    # ecos coletados
     ecos = {WORLD_OVER: False, WORLD_ETER: False, WORLD_UNDER: False}
 
     # =========================
@@ -263,28 +261,23 @@ def main():
         set_uTint(programa, cfg_mundo["tint"])
         fase.reset_mundo()
 
-        # volta ao templo
         player.x = X_START + 1.0
         player.z = 0.0
         player.y = 1.0
 
     def key_cb(win, k, s, a, m):
-        # movimento contínuo
         if a == glfw.PRESS:
             keys[k] = True
         elif a == glfw.RELEASE:
             keys[k] = False
 
-        # ataque
         if k == glfw.KEY_SPACE and a == glfw.PRESS and player.vivo:
             player.ataque = True
             player.temp = 0
 
-        # interação (portal)
         if k == glfw.KEY_E and a == glfw.PRESS:
             keys["E_PRESS"] = True
 
-        # debug: troca manual (1/2/3)
         if a == glfw.PRESS and k in (glfw.KEY_1, glfw.KEY_2, glfw.KEY_3):
             if k == glfw.KEY_1:
                 trocar_mundo(WORLD_OVER)
@@ -298,9 +291,6 @@ def main():
     proj = perspectiva(math.radians(60), w / h, 0.1, 200)
     last = glfw.get_time()
 
-    # =========================
-    # LOOP
-    # =========================
     dbg_t = 0.0
 
     while not glfw.window_should_close(win):
@@ -313,11 +303,9 @@ def main():
         if player.vivo:
             player.update(dt, keys, plataformas, ramp)
 
-        # --- update da fase (ativa trecho e spawna inimigos quando entrar)
         fase.update(player, mundo_atual, cfg_mundo, cor_inim=inim_corpo)
         inimigos = fase.inimigos_todos()
 
-        # --- IA oportunista (Underground): ranged só atira se melee estiver perto do player
         if mundo_atual == WORLD_UNDER:
             melee_perto = False
             for m in inimigos:
@@ -334,18 +322,15 @@ def main():
                 if e.tipo == "ranged":
                     e.can_shoot = True
 
-        # --- update inimigos
         for e in inimigos:
             e.update(dt, player)
 
-        # --- ataque do player (hitbox espada)
         atk = player.espada_box() if player.vivo else None
         if atk:
             for e in inimigos:
                 if e.vivo and colisaoINI(atk, e.aabb()):
                     e.tomar_dano(1)
 
-        # --- lógica Eco/Portal no final
         dist_altar = math.hypot(player.x - ALTAR_X, player.z - ALTAR_Z)
 
         mundo_ok = fase.mundo_completo()
@@ -357,9 +342,7 @@ def main():
             acabou_de_coletar = True
 
         portal_ativo = ecos[mundo_atual] or acabou_de_coletar
-
         e_press = keys.pop("E_PRESS", False)
-
         if portal_ativo and dist_altar < ALTAR_RAIO and e_press:
             trocar_mundo(proximo_mundo(mundo_atual))
 
@@ -373,7 +356,6 @@ def main():
                   "dist_altar:", round(dist_altar, 2),
                   "playerX:", round(player.x, 2))
 
-        # cores por mundo
         if mundo_atual == WORLD_OVER:
             vao_eco = vao_ecoV
             vao_portal = vao_portalA
@@ -396,40 +378,48 @@ def main():
         view = look_at(cam_eye, cam_tgt, np.array([0, 1, 0], dtype=np.float32))
         vp = proj @ view
 
-        # chão
         desenhar(cubo_ground, translacao(0, -0.51, 0) @ escala(40, 1, 40), vp, programa)
 
-        # plataformas
         for p in plataformas:
             vao = cubo_plat1 if p.h == 0 else cubo_plat2
-            desenhar(vao, translacao(p.x, p.h - 0.5, p.z) @ escala(p.w, 1, p.d), vp, programa)
 
-        # rampa
-        ang = math.atan2((ramp.y1 - ramp.y0), abs(ramp.d))
-        if ramp.d < 0:
-            ang = -ang
-        mid_y = (ramp.y0 + ramp.y1) / 2
+            # plataforma do chão (fininha, só “superfície”)
+            if p.h == 0:
+                desenhar(
+                    vao,
+                    translacao(p.x, -0.5, p.z) @ escala(p.w, 1, p.d),
+                    vp, programa
+                )
+            else:
+                # plataforma alta vira um BLOCO que encosta no chão (base em y=0)
+                altura = float(p.h)
+                desenhar(
+                    vao,
+                    translacao(p.x, altura / 2.0, p.z) @ escala(p.w, altura, p.d),
+                    vp, programa
+                )
+
+
+        # ✅ RAMPA SÓLIDA (prisma) - substitui a “folha” diagonal
+        sz = abs(ramp.d)
+        sz_draw = -sz if ramp.d < 0 else sz
         desenhar(
-            plane_ramp,
-            translacao(ramp.x, mid_y, ramp.z) @ rotacaoX(-ang) @ escala(ramp.w, 0.1, abs(ramp.d)),
+            vao_rampa_solida,
+            translacao(ramp.x, ramp.y0 + 0.001, ramp.z) @ escala(ramp.w, (ramp.y1 - ramp.y0), sz_draw),
             vp, programa
         )
 
-        # --- ALTAR (sempre visível no fim)
         model = translacao(ALTAR_X, 0.0, ALTAR_Z) @ escala(2.0, 0.6, 2.0)
         desenhar(vao_altar, model, vp, programa)
 
-        # --- ECO (visível quando mundo completo e ainda não coletou)
         if eco_coletavel:
             model = translacao(ALTAR_X, 1.3, ALTAR_Z) @ escala(0.6, 0.6, 0.6)
             desenhar(vao_eco, model, vp, programa)
 
-        # --- PORTAL (visível quando eco do mundo já foi coletado)
         if portal_ativo:
             model = translacao(ALTAR_X, 1.4, ALTAR_Z) @ escala(1.2, 2.2, 0.4)
             desenhar(vao_portal, model, vp, programa)
 
-        # player
         if player.vivo:
             modelo_player.draw_link(
                 desenhar, programa, vp,
@@ -439,7 +429,6 @@ def main():
                 atacando=player.ataque
             )
 
-        # inimigos + flechas
         for e in inimigos:
             if not e.vivo:
                 continue
