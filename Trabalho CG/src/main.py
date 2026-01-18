@@ -130,39 +130,46 @@ def main():
     portal_verd = (0.20, 0.95, 0.20)
 
     # =========================
-    # VAOs
+    # VAOs (pos + normal + tint)
     # =========================
-    vao_pele  = criarVAO(*criarCubo(pele))
-    vao_roupa = criarVAO(*criarCubo(roupa))
-    vao_bota  = criarVAO(*criarCubo(bota))
-    vao_det   = criarVAO(*criarCubo(det))
 
-    vao_inim_corpo  = criarVAO(*criarCubo(inim_corpo))
-    vao_inim_cabeca = criarVAO(*criarCubo(inim_cabeca))
+    def mk_cubo(cor):
+        v, i, c = criarCubo(cor, com_normais=True)
+        return criarVAO(v, i, c)
 
-    cubo_ground = criarVAO(*criarCubo(ground_cor))
-    cubo_plat1  = criarVAO(*criarCubo(plat1_cor))
-    cubo_plat2  = criarVAO(*criarCubo(plat2_cor))
+    vao_pele  = mk_cubo(pele)
+    vao_roupa = mk_cubo(roupa)
+    vao_bota  = mk_cubo(bota)
+    vao_det   = mk_cubo(det)
 
-    # ✅ rampa sólida (prisma)
-    vao_rampa_solida = criarVAO(*criarRampaSolida(ramp_cor))
+    vao_inim_corpo  = mk_cubo(inim_corpo)
+    vao_inim_cabeca = mk_cubo(inim_cabeca)
 
-    hud_bg = criarVAO(*criarCubo(hud_bg_cor))
-    hud_hp = criarVAO(*criarCubo(hud_hp_cor))
+    cubo_ground = mk_cubo(ground_cor)
+    cubo_plat1  = mk_cubo(plat1_cor)
+    cubo_plat2  = mk_cubo(plat2_cor)
 
-    vao_metal   = criarVAO(*criarCubo(metal))
-    vao_madeira = criarVAO(*criarCubo(madeira))
-    vao_corda   = criarVAO(*criarCubo(corda))
-    vao_pena    = criarVAO(*criarCubo(pena_cor))
+    # rampa sólida
+    v, i, c = criarRampaSolida(ramp_cor)
+    vao_rampa_solida = criarVAO(v, i, c)
 
-    vao_altar = criarVAO(*criarCubo(altar_cor))
-    vao_ecoV  = criarVAO(*criarCubo(eco_verde))
-    vao_ecoA  = criarVAO(*criarCubo(eco_azul))
-    vao_ecoR  = criarVAO(*criarCubo(eco_verm))
+    hud_bg = mk_cubo(hud_bg_cor)
+    hud_hp = mk_cubo(hud_hp_cor)
 
-    vao_portalA = criarVAO(*criarCubo(portal_azul))
-    vao_portalR = criarVAO(*criarCubo(portal_verm))
-    vao_portalV = criarVAO(*criarCubo(portal_verd))
+    vao_metal   = mk_cubo(metal)
+    vao_madeira = mk_cubo(madeira)
+    vao_corda   = mk_cubo(corda)
+    vao_pena    = mk_cubo(pena_cor)
+
+    vao_altar = mk_cubo(altar_cor)
+    vao_ecoV  = mk_cubo(eco_verde)
+    vao_ecoA  = mk_cubo(eco_azul)
+    vao_ecoR  = mk_cubo(eco_verm)
+
+    vao_portalA = mk_cubo(portal_azul)
+    vao_portalR = mk_cubo(portal_verm)
+    vao_portalV = mk_cubo(portal_verd)
+
 
     # =========================
     # MODELOS
