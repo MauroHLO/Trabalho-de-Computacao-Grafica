@@ -280,24 +280,24 @@ def main():
 
         # ---- PAREDÕES SUPERIOR (Z+) ----
         plataformas += [
-            Plataforma(-13.0,  Z_WALL, 14.0, D_WALL, H_WALL, plat2_cor),
+            Plataforma(-15.0,  Z_WALL, 14.0, D_WALL, H_WALL, plat2_cor),
             Plataforma(  0.0,  Z_WALL, 16.0, D_WALL, H_WALL, plat2_cor),
-            Plataforma( 13.0,  Z_WALL, 14.0, D_WALL, H_WALL, plat2_cor),
+            Plataforma( 15.0,  Z_WALL, 14.0, D_WALL, H_WALL, plat2_cor),
         ]
 
         # ---- PAREDÕES INFERIOR (Z-) ----
         plataformas += [
-            Plataforma(-13.0, -Z_WALL, 14.0, D_WALL, H_WALL, plat2_cor),
+            Plataforma(-15.0, -Z_WALL, 14.0, D_WALL, H_WALL, plat2_cor),
             Plataforma(  0.0, -Z_WALL, 16.0, D_WALL, H_WALL, plat2_cor),
-            Plataforma( 13.0, -Z_WALL, 14.0, D_WALL, H_WALL, plat2_cor),
+            Plataforma( 15.0, -Z_WALL, 14.0, D_WALL, H_WALL, plat2_cor),
         ]
 
         # ---- GARGALOS / CURVAS (blocos que invadem o vale) ----
         # Mantém o estilo "orgânico", mas sem roubar as laterais.
         plataformas += [
-            Plataforma(-7.0,  8.0,  8.0, -6.0, H_WALL, plat2_cor),  # empurra de cima
-            Plataforma( 6.5, -9.0,  7.0, -6.0, H_WALL, plat2_cor),  # empurra de baixo (mais "pra trás")
-            Plataforma(11.5,  7.0,  7.0, -6.0, H_WALL, plat2_cor),  # empurra de cima perto do fim
+            Plataforma(-7,  9,  8.0, -6.0, H_WALL, plat2_cor),  # empurra de cima
+            Plataforma( 17.5, -10.0,  8.5, -5.0, H_WALL, plat2_cor),  # empurra de baixo (mais "pra trás")
+            Plataforma(17.5,  9.0,  9, -6.0, H_WALL, plat2_cor),  # empurra de cima perto do fim
         ]
 
         # ---- PLATÔS ACESSÍVEIS (ranged em cima) ----
@@ -306,7 +306,7 @@ def main():
         plataformas += [plat1]
 
         # Platô 2 (lado -Z)
-        plat2 = Plataforma(11.5, -7.8,  7.0, -6.0, 4.0, plat2_cor)
+        plat2 = Plataforma(11.5, -9.8,  7.0, -6.0, 4.0, plat2_cor)
         plataformas += [plat2]
 
         # ---- RAMPAS (só pro player) ----
@@ -386,9 +386,9 @@ def main():
 
         # aproximação do platô 1 (x ~ -3, z ~ +7)
         Trecho(2, "Subida Platô 1", (-7.5, -1.0, ZMIN, ZMAX), {
-            WORLD_OVER:  [SpawnInfo("melee", -6.2,  -0.5), SpawnInfo("ranged", -4.8,  1.8)],
+            WORLD_OVER:  [SpawnInfo("melee", -6.2,  -0.5), SpawnInfo("ranged", -6.8,  1.8)],
             # Mundo 2: ranged no topo do platô 1
-            WORLD_ETER:  [SpawnInfo("ranged", -3.0,  7.0), SpawnInfo("ranged", -2.0,  6.0)],
+            WORLD_ETER:  [SpawnInfo("ranged", -5.0,  7.0), SpawnInfo("ranged", -2.0,  6.0)],
             WORLD_UNDER: [SpawnInfo("melee", -5.5, -1.5), SpawnInfo("ranged", -3.0,  7.0)],
         }, chave=True),
 
@@ -402,7 +402,7 @@ def main():
         Trecho(4, "Subida Platô 2", (6.0, 12.5, ZMIN, ZMAX), {
             WORLD_OVER:  [SpawnInfo("ranged",  8.8, -1.8), SpawnInfo("melee",  8.0,  1.2)],
             # Mundo 2: ranged no topo do platô 2
-            WORLD_ETER:  [SpawnInfo("ranged", 11.0, -7.0), SpawnInfo("ranged", 12.0, -6.0)],
+            WORLD_ETER:  [SpawnInfo("ranged", 11.0, -7.0), SpawnInfo("ranged", 17.0, -6.0)],
             WORLD_UNDER: [SpawnInfo("melee",   8.5,  0.5), SpawnInfo("ranged", 11.0, -7.0)],
         }, chave=True),
 
