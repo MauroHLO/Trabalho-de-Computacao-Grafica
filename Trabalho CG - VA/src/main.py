@@ -7,6 +7,7 @@ import math
 from engine.transformacoes import ortho, perspectiva, translacao, escala, look_at
 from engine.geometrias import criarCubo, criarPlataforma, criarRampaSolida, criarVAO
 from engine.colisao import colisaoINI
+from engine.texturas import Texture2D
 
 # === Game ===
 from game.jogador import Player
@@ -93,6 +94,78 @@ def main():
 
     programa = criarPrograma(VERT, FRAG)
     glUseProgram(programa)
+    
+    # =========================
+    # TEXTURAS (ATLAS)
+    # =========================
+    atlas_pedra_grama = Texture2D.from_file(
+        "src/textures/atlas_pedra_grama.png",
+        flip_y=True,
+        generate_mipmaps=False,
+        min_filter=GL_NEAREST,
+        mag_filter=GL_NEAREST,
+        wrap_s=GL_REPEAT,
+        wrap_t=GL_REPEAT,
+    )
+    
+    atlas_parede_gelo = Texture2D.from_file(
+        "src/textures/atlas_parede_gelo.png",
+        flip_y=True,
+        generate_mipmaps=False,
+        min_filter=GL_NEAREST,
+        mag_filter=GL_NEAREST,
+        wrap_s=GL_REPEAT,
+        wrap_t=GL_REPEAT,
+    )
+    
+    atlas_parede_under = Texture2D.from_file(
+        "src/textures/atlas_parede_under.png",
+        flip_y=True,
+        generate_mipmaps=False,
+        min_filter=GL_NEAREST,
+        mag_filter=GL_NEAREST,
+        wrap_s=GL_REPEAT,
+        wrap_t=GL_REPEAT,
+    )
+    
+    # === Texturas ===   
+    #Overworld   
+    text_over = Texture2D.from_file("src/textures/Chao_Grama.png")     
+    atlas_over = atlas_pedra_grama
+    rampa_over = Texture2D.from_file("src/textures/Chao_Caverna.png")
+
+    # Eter (gelo) — se ainda não tiver atlas de gelo, usa a mesma imagem provisoriamente
+    text_eter = Texture2D.from_file("src/textures/Chao_Gelo.png")
+    atlas_eter = atlas_parede_gelo    
+    rampa_eter = Texture2D.from_file("src/textures/rampa_gelo.png")
+
+    # Under (caverna)
+    text_under = Texture2D.from_file("src/textures/Chao_Under.png")
+    atlas_under= atlas_parede_under 
+    rampa_under = Texture2D.from_file("src/textures/Chao_Under.png") 
+
+    TEX_MUNDO = {
+        WORLD_OVER: {
+            "chao":  text_over,   # chão: grama/pedra (atlas)
+            "parede": atlas_over,  # paredes: pedra nos lados (atlas já faz isso)
+            "rampa": rampa_over,  # rampa: caverna
+        },
+        WORLD_ETER: {
+            "chao":  text_eter,      # chão: gelo
+            "parede": atlas_eter,     # parede: gelo (por enquanto igual)
+            "rampa": rampa_eter,     # rampa: gelo
+        },
+        WORLD_UNDER: {
+            "chao":  text_under,     # chão: caverna
+            "parede": atlas_under,    # parede: caverna (por enquanto igual)
+            "rampa": rampa_under,    # rampa: caverna
+        },
+    }
+
+    text_chao  = TEX_MUNDO[WORLD_OVER]["chao"]
+    text_parede = TEX_MUNDO[WORLD_OVER]["parede"]
+    text_rampa = TEX_MUNDO[WORLD_OVER]["rampa"]
+
 
     # =========================
     # CORES / MATERIAIS
@@ -194,7 +267,8 @@ def main():
             Plataforma(0, 22, 42.0, -1.0, 10.0, cor_dummy, visivel=False),
             # baixo
             Plataforma(0, -22, 42.0, -1.0, 10.0, cor_dummy, visivel=False),
-        ]
+]
+
 
         # A ideia aqui:
         # - o chão vai de z ~= -21 a +21
@@ -219,6 +293,7 @@ def main():
         ]
 
         # ---- GARGALOS / CURVAS (blocos que invadem o vale) ----
+        # Mantém o estilo "orgânico", mas sem roubar as laterais.
         plataformas += [
             Plataforma(-7.0,  8.0,  8.0, -6.0, H_WALL, plat2_cor),  # empurra de cima
             Plataforma( 6.5, -9.0,  7.0, -6.0, H_WALL, plat2_cor),  # empurra de baixo (mais "pra trás")
@@ -226,9 +301,11 @@ def main():
         ]
 
         # ---- PLATÔS ACESSÍVEIS (ranged em cima) ----
+        # Platô 1 (lado +Z)
         plat1 = Plataforma(-3.5,  7.5,  6.5, -5.5, 3.5, plat2_cor)
         plataformas += [plat1]
 
+        # Platô 2 (lado -Z)
         plat2 = Plataforma(11.5, -7.8,  7.0, -6.0, 4.0, plat2_cor)
         plataformas += [plat2]
 
@@ -239,7 +316,6 @@ def main():
         ]
 
         return plataformas, rampas
-
 
 
     plataformas, rampas = criar_mapa(plat1_cor, plat2_cor, ramp_cor)
@@ -326,15 +402,21 @@ def main():
     keys = {}
 
     def trocar_mundo(novo_mundo: int):
-        nonlocal mundo_atual, cfg_mundo
+        nonlocal mundo_atual, cfg_mundo, text_chao, text_parede, text_rampa
+
         mundo_atual = novo_mundo
         cfg_mundo = WORLD_CFG[mundo_atual]
         set_uTint(programa, cfg_mundo["tint"])
-        fase.reset_mundo()
 
+        text_chao   = TEX_MUNDO[mundo_atual]["chao"]
+        text_parede = TEX_MUNDO[mundo_atual]["parede"]
+        text_rampa  = TEX_MUNDO[mundo_atual]["rampa"]
+
+        fase.reset_mundo()
         player.x = X_START + 1.0
         player.z = 0.0
         player.y = 1.0
+
 
     def key_cb(win, k, s, a, m):
         if a == glfw.PRESS:
@@ -436,35 +518,39 @@ def main():
         glClearColor(float(sky[0]), float(sky[1]), float(sky[2]), 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        cam_eye = np.array([player.x - 22, player.y + 40, player.z], dtype=np.float32)
+        cam_eye = np.array([player.x - 8, player.y + 22, player.z], dtype=np.float32)
         cam_tgt = np.array([player.x, player.y, player.z], dtype=np.float32)
         view = look_at(cam_eye, cam_tgt, np.array([0, 1, 0], dtype=np.float32))
         vp = proj @ view
 
-        desenhar(cubo_ground, translacao(0, -0.51, 0) @ escala(40, 1, 40), vp, programa)
+        desenhar(
+            cubo_ground, translacao(0, -0.51, 0) @ escala(40, 1, 40), vp, programa, tex=text_chao, use_tex=True
+)
+
 
         for p in plataformas:
-
+            
             # pula plataformas invisíveis (paredes)
             if not getattr(p, "visivel", True):
                 continue
-
+            
             vao = cubo_plat1 if p.h == 0 else cubo_plat2
 
+            # plataforma do chão (fininha, só “superfície”)
             if p.h == 0:
                 desenhar(
                     vao,
                     translacao(p.x, -0.5, p.z) @ escala(p.w, 1, p.d),
-                    vp, programa
+                    vp, programa, tex=text_chao, use_tex=True
                 )
             else:
+                # plataforma alta vira um BLOCO que encosta no chão (base em y=0)
                 altura = float(p.h)
                 desenhar(
                     vao,
                     translacao(p.x, altura / 2.0, p.z) @ escala(p.w, altura, p.d),
-                    vp, programa
+                    vp, programa, tex=text_parede, use_tex=True
                 )
-
 
 
         # ✅ RAMPAS SÓLIDAS (todas)
@@ -476,7 +562,7 @@ def main():
                 vao_rampa_solida,
                 translacao(r.x, r.y0 + 0.001, r.z)
                 @ escala(r.w, (r.y1 - r.y0), sz_draw),
-                vp, programa
+                vp, programa, tex=text_rampa, use_tex=True
             )
 
 

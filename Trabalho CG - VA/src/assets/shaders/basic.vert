@@ -2,12 +2,14 @@
 
 layout(location = 0) in vec3 pos;
 layout(location = 1) in vec3 normal;
+layout(location = 2) in vec2 uv;
 
 uniform mat4 mvp;
 uniform mat4 model;
 
 out vec3 vNormal;
 out vec3 vFragPos;
+out vec2 vUV;
 
 void main() {
     gl_Position = mvp * vec4(pos, 1.0);
@@ -17,4 +19,6 @@ void main() {
 
     mat3 normalMat = transpose(inverse(mat3(model)));
     vNormal = normalize(normalMat * normal);
+
+    vUV = uv;
 }
