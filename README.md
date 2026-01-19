@@ -51,18 +51,24 @@ import glfw
 from OpenGL.GL import *
 import numpy as np
 import math
-import ctypes
-import time
+from pathlib import Path
 
-from engine.transformacoes import perspectiva, translacao, escala, rotacaoX, look_at
-from engine.geometrias import criarCubo, criarPlataforma, criarVAO
+# === Engine ===
+from engine.transformacoes import ortho, perspectiva, translacao, escala, look_at
+from engine.geometrias import criarCubo, criarRampaSolida, criarVAO
 from engine.colisao import colisaoINI
+from engine.texturas import Texture2D
 
+# === Game ===
 from game.jogador import Player
-from game.inimigo import Inimigo
 from game.plataforma import Plataforma
 from game.rampa import Rampa
+from game.modelo_blocos import ModeloBlocos
+from game.modelo_inimigos import ModeloInimigos
+from game.render_utils import desenhar_flecha
+from game.fase import Fase, Trecho, SpawnInfo
 
+# === Core ===
 from core.renderizador import desenhar
 from core.shaders import criarPrograma
 
@@ -137,6 +143,8 @@ src/
 ├── engine/
 │   ├── colisao.py
 │   ├── geometrias.py
+│   ├── terreno.py
+│   ├── texturas.py
 │   └── transformacoes.py
 │
 ├── game/
@@ -149,5 +157,7 @@ src/
 │   ├── rampa.py
 │   └── render_utils.py
 │
+├── textures/
+│   ├── Imagens usadas durante a implementação
 └── main.py
 
