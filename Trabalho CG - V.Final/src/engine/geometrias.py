@@ -2,10 +2,6 @@ import numpy as np
 import ctypes
 from OpenGL.GL import *
 
-# ============================================================
-# GEOMETRIAS
-# ============================================================
-
 def _normal_tri(a, b, c):
     import numpy as np
 
@@ -32,20 +28,15 @@ def criarCubo(cor=(1.0, 1.0, 1.0), com_normais=True):
         data = []
 
         def uvs_rect(u0, v0, u1, v1):
-            # 4 vértices do quad: (0,0) (1,0) (1,1) (0,1)
             return [
                 (u0, v0),
                 (u1, v0),
                 (u1, v1),
                 (u0, v1),
             ]
-
-        # ====== ATLAS UVs ======
-        # Exemplo atlas 2 colunas:
-        # [ SIDES | TOP ]
         UV_SIDES  = (0.0, 0.0, 0.5, 1.0)
         UV_TOP    = (0.5, 0.0, 1.0, 1.0)
-        UV_BOTTOM = UV_SIDES  # ou cria outra região se quiser
+        UV_BOTTOM = UV_SIDES  
 
         def add_face(v0, v1, v2, v3, n, uv_rect):
             vs = [v0, v1, v2, v3]
@@ -126,10 +117,6 @@ def criarCubo(cor=(1.0, 1.0, 1.0), com_normais=True):
 
         return verts, idx, cor
 
-    # ---- versão simples (pos + cor) ----
-    ...
-
-    # ---- versão simples (pos + cor) ----
     c = cor
     verts = np.array([
         -0.5,-0.5,-0.5, *c,
@@ -163,7 +150,6 @@ def criarPlataforma(cor=(0.4, 0.8, 0.4), tile=1.0):
     n = (0.0, 1.0, 0.0)
 
     verts = np.array([
-        # x,    y,    z,    nx, ny, nz,   u,           v
         -0.5,  0.0, -0.5,  *n,  0.0,       0.0,
          0.5,  0.0, -0.5,  *n,  tile,      0.0,
          0.5,  0.0,  0.5,  *n,  tile,      tile,
@@ -177,15 +163,6 @@ def criarPlataforma(cor=(0.4, 0.8, 0.4), tile=1.0):
 
 
 def criarRampaSolida(cor=(0.64, 0.48, 0.24), tile=1.0):
-    """
-    Rampa sólida (wedge) FECHADA.
-    Layout: [pos(3) + normal(3) + uv(2)]
-    Normais por face (vértices duplicados por triângulo), igual o cubo com luz.
-
-    tile: repetição da textura (1.0 = uma vez)
-    """
-
-    # pontos
     A = (-0.5, 0.0, -0.5)
     B = ( 0.5, 0.0, -0.5)
     C = ( 0.5, 0.0,  0.5)
@@ -198,19 +175,16 @@ def criarRampaSolida(cor=(0.64, 0.48, 0.24), tile=1.0):
 
     def uv_for(p, mode: str):
         x, y, z = p
-        # mapeia [-0.5, 0.5] -> [0, 1]
         def map01(v): 
             return (v + 0.5) * tile
 
-        if mode == "xz":   # chão/base
+        if mode == "xz":   
             return (map01(x), map01(z))
-        if mode == "zy":   # paredes laterais
-            # z em [-0.5,0.5] => [0,1], y em [0,1] => [0,1]
+        if mode == "zy":   
             return (map01(z), y * tile)
-        if mode == "xy":   # topo inclinado
+        if mode == "xy":   
             return (map01(x), y * tile)
 
-        # fallback
         return (0.0, 0.0)
 
     def add_tri(p1, p2, p3, uv_mode: str):
@@ -228,16 +202,16 @@ def criarRampaSolida(cor=(0.64, 0.48, 0.24), tile=1.0):
         ])
         idx.extend([base, base + 1, base + 2])
 
-    # ===== Faces (fechadas) =====
-# Base (baixo)
+    # Faces da rampa que tava bugada 
+    # Base (baixo)
     add_tri(A, C, B, "xz")
     add_tri(A, D, C, "xz")
 
-    # Topo inclinado (CORRETO)
+    # Topo arrumado
     add_tri(A, B, F, "xy")
     add_tri(A, F, E, "xy")
 
-    # Frente (parede vertical em z=+0.5)
+    # Frente 
     add_tri(D, C, F, "zy")
     add_tri(D, F, E, "zy")
 
@@ -253,10 +227,6 @@ def criarRampaSolida(cor=(0.64, 0.48, 0.24), tile=1.0):
     return verts, idx, cor
 
 
-# ============================================================
-# VAO / VBO / EBO
-# ============================================================
-
 def criarVAO(verts, idx, tint=(1.0, 1.0, 1.0)):
     vao = glGenVertexArrays(1)
     glBindVertexArray(vao)
@@ -269,21 +239,17 @@ def criarVAO(verts, idx, tint=(1.0, 1.0, 1.0)):
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx.nbytes, idx, GL_STATIC_DRAW)
 
-    # agora: pos(3) + normal(3) + uv(2) = 8 floats
     stride = 8 * 4
-
-    # location 0: pos (vec3)
     glEnableVertexAttribArray(0)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
 
-    # location 1: normal (vec3)
     glEnableVertexAttribArray(1)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(12))
 
-    # location 2: uv (vec2)
     glEnableVertexAttribArray(2)
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(24))
 
     glBindVertexArray(0)
 
     return vao, vbo, ebo, idx.size, tint
+
