@@ -96,9 +96,9 @@ def main():
     programa = criarPrograma(VERT, FRAG)
     glUseProgram(programa)
     
-    # =========================
+    # <----------------------------->
     # TEXTURAS (ATLAS)
-    # =========================
+    # <----------------------------->
     atlas_pedra_grama = Texture2D.from_file(
         "src/textures/atlas_pedra_grama.png",
         flip_y=True,
@@ -147,19 +147,19 @@ def main():
 
     TEX_MUNDO = {
         WORLD_OVER: {
-            "chao":  text_over,   # chão: grama/pedra (atlas)
-            "parede": atlas_over,  # paredes: pedra nos lados (atlas já faz isso)
-            "rampa": rampa_over,  # rampa: caverna
+            "chao":  text_over,   
+            "parede": atlas_over,  
+            "rampa": rampa_over,  
         },
         WORLD_ETER: {
-            "chao":  text_eter,      # chão: gelo
-            "parede": atlas_eter,     # parede: gelo (por enquanto igual)
-            "rampa": rampa_eter,     # rampa: gelo
+            "chao":  text_eter,      
+            "parede": atlas_eter,    
+            "rampa": rampa_eter,     
         },
         WORLD_UNDER: {
-            "chao":  text_under,     # chão: caverna
-            "parede": atlas_under,    # parede: caverna (por enquanto igual)
-            "rampa": rampa_under,    # rampa: caverna
+            "chao":  text_under,    
+            "parede": atlas_under,   
+            "rampa": rampa_under,    
         },
     }
 
@@ -168,9 +168,9 @@ def main():
     text_rampa = TEX_MUNDO[WORLD_OVER]["rampa"]
 
 
-    # =========================
+    # <----------------------------->
     # CORES / MATERIAIS
-    # =========================
+    # <----------------------------->
     pele = (0.90, 0.75, 0.60)
     roupa = (0.15, 0.65, 0.25)
     bota = (0.20, 0.12, 0.06)
@@ -202,9 +202,9 @@ def main():
     portal_verd = (0.20, 0.95, 0.20)
     cor_dummy   = (0.0, 0.0, 0.0)
 
-    # =========================
+    # <----------------------------->
     # VAOs (pos + normal + tint)
-    # =========================
+    # <----------------------------->
 
     def mk_cubo(cor):
         v, i, c = criarCubo(cor, com_normais=True)
@@ -244,22 +244,22 @@ def main():
     vao_portalV = mk_cubo(portal_verd)
 
 
-    # =========================
+    # <----------------------------->
     # MODELOS
-    # =========================
+    # <----------------------------->
     modelo_player  = ModeloBlocos(vao_pele, vao_roupa, vao_bota, vao_det, vao_metal, vao_madeira)
     modelo_inimigos = ModeloInimigos(vao_inim_corpo, vao_inim_cabeca, vao_metal, vao_madeira, vao_corda)
 
-    # =========================
+    # <----------------------------->
     # CENÁRIO 
-    # =========================
+    # <----------------------------->
     def criar_mapa(plat1_cor, plat2_cor, ramp_cor):
 
         plataformas = [
             # chão base (grande)
             Plataforma(0, 0,  42, -42, 0, plat1_cor),
 
-            # ====== PAREDES FINAS DE BORDA (INVISÍVEIS) ======
+            # PAREDES FINAS DA BORDA (INVISÍVEIS)
             # esquerda
             Plataforma(-22, 0, 1.0, -42.0, 10.0, cor_dummy, visivel=False),
             # direita
@@ -293,19 +293,16 @@ def main():
             Plataforma(17.5,  9.0,  9, -6.0, H_WALL, plat2_cor),
         ]
 
-        # ---- TERRENO ALTO (ranged em cima) ----
-        # 1
+        # TERRENO ALTO (ranged em cima)
         plat1 = Plataforma(-3.5,  7.5,  6.5, -5.5, 3.5, plat2_cor)
         plataformas += [plat1]
 
-        # 2
         plat2 = Plataforma(11.5, -9.8,  7.0, -6.0, 4.0, plat2_cor)
         plataformas += [plat2]
 
-        # RAMPAS
         rampas = [
-            Rampa(-3.5,  3.0,  5.0,  5.5, 0.0, 3.5, ramp_cor),   # sobe pro Platô 1
-            Rampa(11.5, -3.8,  5.5, -6.0, 0.0, 4.0, ramp_cor),   # sobe pro Platô 2
+            Rampa(-3.5,  3.0,  5.0,  5.5, 0.0, 3.5, ramp_cor),   
+            Rampa(11.5, -3.8,  5.5, -6.0, 0.0, 4.0, ramp_cor),   
         ]
 
         return plataformas, rampas
@@ -314,9 +311,9 @@ def main():
     plataformas, rampas = criar_mapa(plat1_cor, plat2_cor, ramp_cor)
 
 
-    # =========================
+    # <----------------------------->
     # ESTADO DO JOGO
-    # =========================
+    # <----------------------------->
     player = Player()
 
     X_START = -18.0
@@ -328,9 +325,9 @@ def main():
     player.x = X_START + 1.0
     player.z = 0.0
     
-    # =========================
+    # <----------------------------->
     # BAU (tutorial + endgame)
-    # =========================
+    # <----------------------------->
     BAU_RAIO_INTERACAO = 1.6
 
     bau_x = player.x
@@ -338,9 +335,6 @@ def main():
     bau_y = 0.0
 
     tutorial_estado = 0
-    # 0 = ainda não abriu
-    # 1 = mensagem aparecendo (espera apertar E pra fechar)
-    # 2 = tutorial concluído
 
     endgame_ativo = False
 
@@ -359,9 +353,9 @@ def main():
 
     ecos = {WORLD_OVER: False, WORLD_ETER: False, WORLD_UNDER: False}
 
-    # =========================
+    # <----------------------------->
     # TRECHOS
-    # =========================
+    # <----------------------------->
     ZMIN, ZMAX = -8.5, 8.5
     trechos = [
         Trecho(0, "Entrada", (X_START, -13.0, ZMIN, ZMAX), {
@@ -412,9 +406,9 @@ def main():
 
     fase = Fase(trechos, leash_radius=7.0)
 
-    # =========================
-    # INPUT
-    # =========================
+    # <----------------------------->
+    # Movimentação
+    # <----------------------------->
     keys = {}
 
     def trocar_mundo(novo_mundo: int):
@@ -505,31 +499,28 @@ def main():
         portal_ativo = ecos[mundo_atual] or acabou_de_coletar
         e_press = keys.pop("E_PRESS", False)
 
-        # =========================
+        # <----------------------------->
         # INTERAÇÃO COM BAÚ (prioridade sobre portal)
-        # =========================
+        # <----------------------------->
         if e_press:
             if endgame_ativo:
                 pass
             else:
-                # 1) Primeiro contato: abre tutorial
                 if tutorial_estado == 0 and bau_perto_do_player():
                     tutorial_estado = 1
-                    e_press = False  # consome o E (não deixa portal usar)
+                    e_press = False  
 
-                # 2) Tutorial aberto: E fecha
                 elif tutorial_estado == 1:
                     tutorial_estado = 2
                     e_press = False  # consome
 
-                # 3) Baú final: só abre quando tiver 3 fragmentos e estiver no mundo 1
                 elif tutorial_estado == 2 and bau_perto_do_player() and (mundo_atual == WORLD_OVER) and tem_todos_fragmentos():
                     endgame_ativo = True
                     e_press = False  # consome
 
-        # =========================
+        # <----------------------------->
         # PORTAL (só se não consumiu E no baú)
-        # =========================
+        # <----------------------------->
         if portal_ativo and dist_altar < ALTAR_RAIO and e_press and (not endgame_ativo) and (tutorial_estado != 1):
             trocar_mundo(proximo_mundo(mundo_atual))
 
@@ -554,9 +545,9 @@ def main():
             vao_eco = vao_ecoR
             vao_portal = vao_portalV
 
-        # =========================
+        # <----------------------------->
         # RENDER
-        # =========================
+        # <----------------------------->
         sky = cfg_mundo["sky"]
         glClearColor(float(sky[0]), float(sky[1]), float(sky[2]), 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -566,11 +557,11 @@ def main():
         view = look_at(cam_eye, cam_tgt, np.array([0, 1, 0], dtype=np.float32))
         vp = proj @ view
 
-        # =========================
+        # <----------------------------->
         # ILUMINAÇÃO
-        # =========================
+        # <----------------------------->
 
-        # Direcional por mundo
+
         if mundo_atual == WORLD_OVER:
             dir_dir = (0.25, -1.0, 0.20)
             dir_color = (1.00, 0.98, 0.92)   # sol
@@ -585,7 +576,7 @@ def main():
             amb = 0.18
 
             p_col = [(0.65, 0.85, 1.25)] * 4 # cristais brilhantes
-        else:  # WORLD_UNDER
+        else:  
             dir_dir = (-0.10, -1.0, 0.05)
             dir_color = (1.10, 0.55, 0.40)   # Sol mais forte
             dir_int = 0.85
@@ -593,13 +584,11 @@ def main():
 
             p_col = [(1.25, 0.55, 0.35)] * 4 # fogo/lava
 
-        # 4 luzes pontuais fixas no mapa (posições boas pro seu layout atual)
-        # (Y=2.0 fica acima do chão, ilumina player/inimigos)
         p_pos = [
-            (-12.0, 2.0,  0.0),           # entrada
-            (-3.5,  3.2,  7.5),           # perto do terreno alto 1
-            (11.5,  3.5, -7.8),           # perto do terreno alto 2
-            (ALTAR_X, 3.0, ALTAR_Z),      # altar
+            (-12.0, 2.0,  0.0),          
+            (-3.5,  3.2,  7.5),           
+            (11.5,  3.5, -7.8),           
+            (ALTAR_X, 3.0, ALTAR_Z),      
         ]
 
         p_int = [1.2, 1.0, 1.0, 1.6]
@@ -652,9 +641,9 @@ def main():
             )
 
 
-        # =========================
+        # <----------------------------->
         # DESENHA BAÚ
-        # =========================
+        # <----------------------------->
         desenhar(
             vao_madeira,
             translacao(bau_x, 0.35, bau_z) @ escala(1.2, 0.7, 0.9),
@@ -723,9 +712,9 @@ def main():
                 yaw = math.atan2(vx, vz)
                 desenhar_flecha(desenhar, programa, vp, px, py, pz, yaw, vao_madeira, vao_metal, vao_pena)
 
-        # =========================
+        # <----------------------------->
         # HUD VIDA
-        # =========================
+        # <----------------------------->
         frac = 0.0
         if player.vida_max > 0:
             frac = max(0.0, min(1.0, player.vida / player.vida_max))
@@ -750,9 +739,9 @@ def main():
         model_hp = translacao(HUD_X - shift, HUD_Y, 0.0) @ escala(fill_w, HUD_H * 0.75, 1.0)
         desenhar(hud_hp, model_hp, vp_hud, programa, unlit=True)
         
-        # =========================
+        # <----------------------------->
         # HUD FRAGMENTOS (3 mundos)
-        # =========================
+        # <----------------------------->
         FR_X0 = -0.10
         FR_Y  =  0.82
         FR_S  =  0.07
@@ -763,7 +752,6 @@ def main():
             x = FR_X0 + i * FR_GAP
             desenhar(hud_bg, translacao(x, FR_Y, 0.0) @ escala(FR_S, FR_S, 1.0), vp_hud, programa, unlit=True)
 
-        # preenchidos (usa os VAOs dos ecos pra ficar claro)
         if ecos[WORLD_OVER]:
             desenhar(vao_ecoV, translacao(FR_X0 + 0 * FR_GAP, FR_Y, 0.0) @ escala(FR_S * 0.85, FR_S * 0.85, 1.0), vp_hud, programa, unlit=True)
         if ecos[WORLD_ETER]:
@@ -771,9 +759,9 @@ def main():
         if ecos[WORLD_UNDER]:
             desenhar(vao_ecoR, translacao(FR_X0 + 2 * FR_GAP, FR_Y, 0.0) @ escala(FR_S * 0.85, FR_S * 0.85, 1.0), vp_hud, programa, unlit=True)
 
-        # =========================
+        # <----------------------------->
         # OVERLAYS 
-        # =========================
+        # <----------------------------->
 
         # tutorial painel
         if tutorial_estado == 1:
@@ -787,7 +775,6 @@ def main():
         if endgame_ativo:
             desenhar(hud_bg, translacao(0.0, 0.0, 0.0) @ escala(1.8, 0.9, 1.0), vp_hud, programa, unlit=True)
             desenhar(hud_hp, translacao(0.0, 0.22, 0.0) @ escala(1.3, 0.10, 1.0), vp_hud, programa, unlit=True)
-            # "END GAME" fake
             desenhar(hud_hp, translacao(0.0, 0.02, 0.0) @ escala(1.0, 0.07, 1.0), vp_hud, programa, unlit=True)
 
         glEnable(GL_DEPTH_TEST)
