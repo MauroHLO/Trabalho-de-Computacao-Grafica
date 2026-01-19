@@ -9,9 +9,7 @@ class ModeloInimigos:
         self.vao_madeira = vao_madeira
         self.vao_corda = vao_corda
 
-    # =========================
     # INIMIGO MELEE (faca)
-    # =========================
     def draw_melee(self, desenhar_fn, prog, vp, x, y, z, face):
         base = translacao(x, y, z) @ rotacaoY(face)
 
@@ -24,11 +22,11 @@ class ModeloInimigos:
         # “mão” na frente direita
         mao = base @ translacao(0.65, 1.05, 0.45)
 
-        # cabo (madeira) - horizontal (Z)
+        # cabo 
         cabo = mao @ translacao(0.0, 0.0, 0.10) @ escala(0.10, 0.10, 0.35)
         desenhar_fn(self.vao_madeira, cabo, vp, prog)
 
-        # lâmina (metal) - horizontal (Z) apontando pra frente
+        # lâmina 
         lamina = mao @ translacao(0.0, 0.02, 0.55) @ escala(0.08, 0.06, 0.85)
         desenhar_fn(self.vao_metal, lamina, vp, prog)
 
@@ -36,10 +34,7 @@ class ModeloInimigos:
         ponta = mao @ translacao(0.0, 0.02, 1.05) @ escala(0.06, 0.05, 0.15)
         desenhar_fn(self.vao_metal, ponta, vp, prog)
 
-
-    # =========================
     # INIMIGO RANGED (arco)
-    # =========================
     def draw_ranged(self, desenhar_fn, prog, vp, x, y, z, face):
         base = translacao(x, y, z) @ rotacaoY(face)
 
@@ -52,7 +47,7 @@ class ModeloInimigos:
         # arco na frente do inimigo
         arco_base = base @ translacao(0.65, 1.15, 0.40) @ rotacaoY(math.pi)
 
-        # “curva fake”: 3 segmentos madeira (topo, meio, baixo)
+        # “curva fake”
         topo = arco_base @ translacao(0.0, 0.45, 0.0) @ escala(0.12, 0.45, 0.12)
         meio = arco_base @ translacao(0.0, 0.00, 0.0) @ escala(0.10, 0.55, 0.10)
         baixo = arco_base @ translacao(0.0, -0.45, 0.0) @ escala(0.12, 0.45, 0.12)
@@ -60,14 +55,14 @@ class ModeloInimigos:
         desenhar_fn(self.vao_madeira, meio, vp, prog)
         desenhar_fn(self.vao_madeira, baixo, vp, prog)
 
-        # “pontas” do arco (um pouco pra frente)
-        # pontas mais alongadas (Y maior) e um pouco mais "pra frente" (Z)
+        # pontas do arco 
         ponta_cima  = arco_base @ translacao(0.0, 0.92, 0.08) @ escala(0.10, 0.26, 0.12)
         ponta_baixo = arco_base @ translacao(0.0, -0.92, 0.08) @ escala(0.10, 0.26, 0.12)
 
         desenhar_fn(self.vao_madeira, ponta_cima, vp, prog)
         desenhar_fn(self.vao_madeira, ponta_baixo, vp, prog)
 
-        # corda (clara) – bem fininha
+        # corda
         corda = arco_base @ translacao(0.0, 0.0, 0.10) @ escala(0.02, 1.65, 0.02)
         desenhar_fn(self.vao_corda, corda, vp, prog)
+
