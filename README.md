@@ -53,13 +53,11 @@ import numpy as np
 import math
 from pathlib import Path
 
-# === Engine ===
 from engine.transformacoes import ortho, perspectiva, translacao, escala, look_at
 from engine.geometrias import criarCubo, criarRampaSolida, criarVAO
 from engine.colisao import colisaoINI
 from engine.texturas import Texture2D
 
-# === Game ===
 from game.jogador import Player
 from game.plataforma import Plataforma
 from game.rampa import Rampa
@@ -68,7 +66,6 @@ from game.modelo_inimigos import ModeloInimigos
 from game.render_utils import desenhar_flecha
 from game.fase import Fase, Trecho, SpawnInfo
 
-# === Core ===
 from core.renderizador import desenhar
 from core.shaders import criarPrograma
 
