@@ -334,6 +334,32 @@ def main():
 
     player.x = X_START + 1.0
     player.z = 0.0
+        # =========================
+    # BAU (tutorial + endgame)
+    # =========================
+    BAU_RAIO_INTERACAO = 1.6
+
+    # coloca o baú "logo atrás" do spawn inicial do player
+    # (face inicial do player é 0 => "frente" ~ +Z, então atrás é -Z)
+    bau_x = player.x
+    bau_z = player.z - 2.0
+    bau_y = 0.0
+
+    tutorial_estado = 0
+    # 0 = ainda não abriu
+    # 1 = mensagem aparecendo (espera apertar E pra fechar)
+    # 2 = tutorial concluído
+
+    endgame_ativo = False
+
+    def dist_xz(ax, az, bx, bz):
+        return math.hypot(ax - bx, az - bz)
+
+    def bau_perto_do_player():
+        return dist_xz(player.x, player.z, bau_x, bau_z) <= BAU_RAIO_INTERACAO
+
+    def tem_todos_fragmentos():
+        return bool(ecos[WORLD_OVER] and ecos[WORLD_ETER] and ecos[WORLD_UNDER])
 
     mundo_atual = WORLD_OVER
     cfg_mundo = WORLD_CFG[mundo_atual]
@@ -488,8 +514,36 @@ def main():
 
         portal_ativo = ecos[mundo_atual] or acabou_de_coletar
         e_press = keys.pop("E_PRESS", False)
-        if portal_ativo and dist_altar < ALTAR_RAIO and e_press:
+
+        # =========================
+        # INTERAÇÃO COM BAÚ (prioridade sobre portal)
+        # =========================
+        if e_press:
+            if endgame_ativo:
+                # se já está no end game, E apenas ignora (ou você pode fechar se quiser)
+                pass
+            else:
+                # 1) Primeiro contato: abre tutorial
+                if tutorial_estado == 0 and bau_perto_do_player():
+                    tutorial_estado = 1
+                    e_press = False  # consome o E (não deixa portal usar)
+
+                # 2) Tutorial aberto: E fecha
+                elif tutorial_estado == 1:
+                    tutorial_estado = 2
+                    e_press = False  # consome
+
+                # 3) Baú final: só abre quando tiver 3 fragmentos e estiver no mundo 1
+                elif tutorial_estado == 2 and bau_perto_do_player() and (mundo_atual == WORLD_OVER) and tem_todos_fragmentos():
+                    endgame_ativo = True
+                    e_press = False  # consome
+
+        # =========================
+        # PORTAL (só se não consumiu E no baú)
+        # =========================
+        if portal_ativo and dist_altar < ALTAR_RAIO and e_press and (not endgame_ativo) and (tutorial_estado != 1):
             trocar_mundo(proximo_mundo(mundo_atual))
+
 
         dbg_t += dt
         if dbg_t > 1.0:
@@ -518,7 +572,7 @@ def main():
         glClearColor(float(sky[0]), float(sky[1]), float(sky[2]), 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        cam_eye = np.array([player.x - 8, player.y + 22, player.z], dtype=np.float32)
+        cam_eye = np.array([player.x - 18, player.y + 24, player.z], dtype=np.float32)
         cam_tgt = np.array([player.x, player.y, player.z], dtype=np.float32)
         view = look_at(cam_eye, cam_tgt, np.array([0, 1, 0], dtype=np.float32))
         vp = proj @ view
@@ -554,6 +608,7 @@ def main():
 
 
         # ✅ RAMPAS SÓLIDAS (todas)
+        # ✅ RAMPAS SÓLIDAS (todas)
         for r in rampas:
             sz = abs(r.d)
             sz_draw = -sz if r.d < 0 else sz
@@ -564,6 +619,26 @@ def main():
                 @ escala(r.w, (r.y1 - r.y0), sz_draw),
                 vp, programa, tex=text_rampa, use_tex=True
             )
+
+
+        # =========================
+        # DESENHA BAÚ (objeto único)
+        # =========================
+        desenhar(
+            vao_madeira,
+            translacao(bau_x, 0.35, bau_z) @ escala(1.2, 0.7, 0.9),
+            vp, programa
+        )
+        desenhar(
+            vao_madeira,
+            translacao(bau_x, 0.75, bau_z) @ escala(1.25, 0.25, 0.95),
+            vp, programa
+        )
+        desenhar(
+            vao_metal,
+            translacao(bau_x, 0.55, bau_z + 0.48) @ escala(0.25, 0.25, 0.10),
+            vp, programa
+        )
 
 
         model = translacao(ALTAR_X, 0.0, ALTAR_Z) @ escala(2.0, 0.6, 2.0)
@@ -636,6 +711,53 @@ def main():
 
         model_hp = translacao(HUD_X - shift, HUD_Y, 0.0) @ escala(fill_w, HUD_H * 0.75, 1.0)
         desenhar(hud_hp, model_hp, vp_hud, programa, unlit=True)
+                # =========================
+        # HUD FRAGMENTOS (3 mundos)
+        # =========================
+        # caixinhas no topo (um pouco à direita da barra de vida)
+        FR_X0 = -0.10
+        FR_Y  =  0.82
+        FR_S  =  0.07
+        FR_GAP = 0.09
+
+        # fundo "vazio"
+        for i in range(3):
+            x = FR_X0 + i * FR_GAP
+            desenhar(hud_bg, translacao(x, FR_Y, 0.0) @ escala(FR_S, FR_S, 1.0), vp_hud, programa, unlit=True)
+
+        # preenchidos (usa os VAOs dos ecos pra ficar claro)
+        if ecos[WORLD_OVER]:
+            desenhar(vao_ecoV, translacao(FR_X0 + 0 * FR_GAP, FR_Y, 0.0) @ escala(FR_S * 0.85, FR_S * 0.85, 1.0), vp_hud, programa, unlit=True)
+        if ecos[WORLD_ETER]:
+            desenhar(vao_ecoA, translacao(FR_X0 + 1 * FR_GAP, FR_Y, 0.0) @ escala(FR_S * 0.85, FR_S * 0.85, 1.0), vp_hud, programa, unlit=True)
+        if ecos[WORLD_UNDER]:
+            desenhar(vao_ecoR, translacao(FR_X0 + 2 * FR_GAP, FR_Y, 0.0) @ escala(FR_S * 0.85, FR_S * 0.85, 1.0), vp_hud, programa, unlit=True)
+
+        # =========================
+        # OVERLAYS (tutorial / endgame)
+        # (sem texto real: só "painel" por enquanto, porque teu engine não desenha fonte)
+        # =========================
+
+        # tutorial painel
+        if tutorial_estado == 1:
+            # fundo escuro
+            desenhar(hud_bg, translacao(0.0, 0.0, 0.0) @ escala(1.6, 0.75, 1.0), vp_hud, programa, unlit=True)
+            # destaque (simula área de texto)
+            desenhar(hud_hp, translacao(0.0, 0.18, 0.0) @ escala(1.45, 0.08, 1.0), vp_hud, programa, unlit=True)
+            desenhar(hud_hp, translacao(0.0, 0.05, 0.0) @ escala(1.25, 0.05, 1.0), vp_hud, programa, unlit=True)
+            desenhar(hud_hp, translacao(0.0, -0.05, 0.0) @ escala(1.35, 0.05, 1.0), vp_hud, programa, unlit=True)
+            desenhar(hud_hp, translacao(0.0, -0.20, 0.0) @ escala(0.95, 0.04, 1.0), vp_hud, programa, unlit=True)
+            # ideia: você pode trocar esses “riscos” por texto real quando tiver render de fonte
+            # lógica: "Pressione E para continuar" já está funcionando
+
+        # endgame painel
+        if endgame_ativo:
+            desenhar(hud_bg, translacao(0.0, 0.0, 0.0) @ escala(1.8, 0.9, 1.0), vp_hud, programa, unlit=True)
+            # "PARABÉNS" fake (barra grande)
+            desenhar(hud_hp, translacao(0.0, 0.22, 0.0) @ escala(1.3, 0.10, 1.0), vp_hud, programa, unlit=True)
+            # "END GAME" fake
+            desenhar(hud_hp, translacao(0.0, 0.02, 0.0) @ escala(1.0, 0.07, 1.0), vp_hud, programa, unlit=True)
+
 
         glEnable(GL_DEPTH_TEST)
 
