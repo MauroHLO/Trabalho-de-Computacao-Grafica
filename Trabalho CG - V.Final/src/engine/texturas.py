@@ -6,6 +6,7 @@ from typing import Optional
 from OpenGL.GL import *
 from PIL import Image
 
+
 @dataclass
 class Texture2D:
     id: int
@@ -68,4 +69,3 @@ class Texture2D:
     def destroy(self) -> None:
         glDeleteTextures([self.id])
         self.id = 0
-

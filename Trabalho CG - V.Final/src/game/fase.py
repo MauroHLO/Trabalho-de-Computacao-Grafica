@@ -7,12 +7,7 @@ Bounds = Tuple[float, float, float, float]  # xmin, xmax, zmin, zmax
 
 
 def y_spawn_seguro(x, z, plataformas, rampas, half=0.5):
-    """
-    Retorna um Y seguro para spawn no ponto (x,z):
-    - se cair em plataforma alta, spawn em cima do topo
-    - se cair em rampa, spawn em cima da superfície
-    - senão, spawn no chão
-    """
+   
     y_base = 0.0
 
     # rampas (superfície)
@@ -45,7 +40,7 @@ class Trecho:
     nome: str
     bounds: Bounds
     spawns_por_mundo: Dict[int, List[SpawnInfo]]
-    chave: bool = False       # conta para liberar o Eco do mundo
+    chave: bool = False       
     ativo: bool = False
     limpo: bool = False
     inimigos: List[Inimigo] = field(default_factory=list)
@@ -59,12 +54,7 @@ class Trecho:
 
 
 class Fase:
-    """
-    Uma fase (mesmo mapa). O que muda por mundo:
-      - tint/sky
-      - spawns em cada trecho
-      - stats/behavior (via cfg_mundo)
-    """
+    
     def __init__(self, trechos: List[Trecho], leash_radius: float = 7.0):
         self.trechos = trechos
         self.leash_radius = float(leash_radius)
@@ -93,9 +83,9 @@ class Fase:
         for sp in t.spawns_por_mundo.get(mundo, []):
             e = Inimigo(sp.x, sp.z, cor_inim, sp.tipo)
 
-            # =========================
+            # <--------------------------->
             # CAMADA DO TERRENO
-            # =========================
+            # <--------------------------->
             plat = achar_plataforma_embaixo(e.x, e.z, plataformas)
 
             if plat is not None and float(plat.h) > 0.0:
@@ -106,11 +96,10 @@ class Fase:
                 # puxar pra dentro pra evitar borda
                 e.x, e.z = clamp_dentro_plataforma(e.x, e.z, plat, margem=0.40)
 
-                # y seguro (topo)
                 e.y = float(plat.h) + (e.tam / 2.0)
 
             else:
-                # inimigo nasce no chão (camada chão)
+                # inimigo nasce no chão 
                 e.terrain_layer = "chao"
                 e.plat_ref = None
 
@@ -127,7 +116,6 @@ class Fase:
             e.cooldown_atk_range = prof.get("fire_cd", getattr(e, "cooldown_atk_range", 2.0))
             e.burst = prof.get("burst", getattr(e, "burst", 1))
 
-            # leash/território
             e.home_x = e.x
             e.home_z = e.z
             e.leash_radius = self.leash_radius
@@ -163,7 +151,7 @@ class Fase:
                 trecho.limpo = True
 
     def mundo_completo(self) -> bool:
-        # libera eco quando todos trechos "chave" estiverem limpos
+        # libera eco quando todos trechos estiverem limpos
         for t in self.trechos:
             if t.chave and (not t.limpo):
                 return False

@@ -16,7 +16,7 @@ class Inimigo:
         self.burst_left = 0
         self.burst_gap = 0.12
         self.burst_timer = 0.0
-        self.can_shoot = True  # oportunista
+        self.can_shoot = True  
 
         # --- Trechos
         self.home_x = self.x
@@ -48,7 +48,7 @@ class Inimigo:
 
         # Camada do terreno:
         # "chao"  -> não sobe em plataforma
-        # "plat"  -> não desce; preso na plataforma
+        # "plat"  -> não desce (preso na plataforma)
         self.terrain_layer = "chao"
         self.plat_ref = None
 
@@ -123,10 +123,7 @@ class Inimigo:
                 self.atk_timer_range = self.cooldown_atk_range
 
     def _empurrar_fora_aabb(self, obst_aabb):
-        """
-        Resolve colisão AABB vs AABB empurrando o inimigo para fora
-        pela menor penetração (só X/Z, mantém Y).
-        """
+        
         a = self.aabb()
         b = obst_aabb
 
@@ -134,12 +131,12 @@ class Inimigo:
             return False
 
         # penetrações em X
-        pen_left  = abs(a[3] - b[0])  # a.right - b.left
-        pen_right = abs(b[3] - a[0])  # b.right - a.left
+        pen_left  = abs(a[3] - b[0])  
+        pen_right = abs(b[3] - a[0])  
 
         # penetrações em Z
-        pen_front = abs(a[5] - b[2])  # a.back  - b.front
-        pen_back  = abs(b[5] - a[2])  # b.back  - a.front
+        pen_front = abs(a[5] - b[2])  
+        pen_back  = abs(b[5] - a[2]) 
 
         m = min(pen_left, pen_right, pen_front, pen_back)
 
@@ -180,9 +177,9 @@ class Inimigo:
         if d < 1e-6:
             return
 
-        # =========================
+        # <--------------------------->
         # MOVIMENTO + ATAQUE
-        # =========================
+        # <--------------------------->
         old_x, old_z = self.x, self.z
 
         if self.tipo == "melee":
@@ -203,9 +200,9 @@ class Inimigo:
 
             self.atacar_ranged(player, dt)
 
-        # =========================
+        # <--------------------------->
         # TRAVA DE CAMADA (alto vs chão)
-        # =========================
+        # <--------------------------->
         if self.terrain_layer == "plat" and self.plat_ref is not None:
             if not self.plat_ref.contencao(self.x, self.z):
                 self.x, self.z = old_x, old_z
@@ -224,11 +221,11 @@ class Inimigo:
                 if entrou_em_plat:
                     self.x, self.z = old_x, old_z
 
-            self.y = 0.5  # centro no chão
+            self.y = 0.5  
 
-            # =========================
-            # COLISÃO CONTRA RAMPAS
-            # =========================
+            # <--------------------------->
+            # COLISÃO DAS RAMPAS
+            # <--------------------------->
             if rampas:
                 entrou_em_rampa = False
                 for r in rampas:
@@ -244,9 +241,9 @@ class Inimigo:
 
                         break
 
-        # =========================
+        # <--------------------------->
         # ATUALIZA FLECHAS
-        # =========================
+        # <--------------------------->
         sobreviventes = []
         for f in self.flechas_ativas:
             f["pos"] += f["vel"] * dt

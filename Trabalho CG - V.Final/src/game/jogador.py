@@ -13,7 +13,7 @@ class Player:
         self.ataque = False
         self.temp = 0
 
-        # === VIDA / MORTE ===
+        # VIDA / MORTE 
         self.vida_max = 10
         self.vida = self.vida_max
         self.vivo = True
@@ -30,7 +30,7 @@ class Player:
             self.vida = 0
             self.vivo = False
 
-        self.inv_timer = 1000  # debug (invencível)
+        self.inv_timer = 5
 
     def update(self, dt, keys, plats, rampas):
         if not self.vivo:
@@ -38,9 +38,9 @@ class Player:
 
         if self.inv_timer > 0:
             self.inv_timer -= dt
-        # =========================
+        # <--------------------------->
         # MOVIMENTO
-        # =========================
+        # <--------------------------->
         dx = dz = 0
         if keys.get(glfw.KEY_W): dx += 1
         if keys.get(glfw.KEY_S): dx -= 1
@@ -59,10 +59,9 @@ class Player:
 
         half = self.tam / 2.0
 
-        # =========================
+        # <--------------------------->
         # PAREDES LATERAIS INVISÍVEIS DA RAMPA
-        # (impede subir/entrar pela lateral, estilo "parede do bloco")
-        # =========================
+        # <--------------------------->
         if rampas:
             aabb_player = self.aabb()
             for r in rampas:
@@ -74,12 +73,12 @@ class Player:
                         break
 
 
-        # =========================
+        # <--------------------------->
         # ALTURA (rampa + plataformas)
-        # =========================
+        # <--------------------------->
         novo_Y = 0.0
 
-        # rampa (só aplica se estiver dentro e passando pela frente, se existir _pela_frente)
+        # rampa (só aplica se estiver dentro e passando pela frente)
         if rampas:
             for r in rampas:
                 if r is None:
@@ -100,11 +99,9 @@ class Player:
 
         self.y = novo_Y + half
 
-        # =========================
+        # <--------------------------->
         # COLISÃO LATERAL COM PLATAFORMAS ALTAS (BLOCO)
-        # - impede entrar no bloco
-        # - mas NÃO bloqueia quando você já está quase no topo (pra conseguir subir)
-        # =========================
+        # <--------------------------->
         margem_subida = 0.15  # quanto perto do topo libera entrar
 
         for p in plats:
@@ -117,10 +114,10 @@ class Player:
             z_max = p.z + abs(p.d) / 2.0
             y_top = float(p.h)
 
-            # só bloqueia lateral se o player estiver abaixo do topo - margem
+            # só bloqueia lateral se o player estiver abaixo do topo 
             if (self.y - half) < (y_top - margem_subida):
                 if (x_min - half <= self.x <= x_max + half) and (z_min - half <= self.z <= z_max + half):
-                    # empurra para fora pela menor penetração
+                    # empurra para fora 
                     pen_left  = abs(self.x - (x_min - half))
                     pen_right = abs((x_max + half) - self.x)
                     pen_front = abs(self.z - (z_min - half))
@@ -137,9 +134,9 @@ class Player:
                     else:
                         self.z = z_max + half
 
-        # =========================
+        # <--------------------------->
         # ATAQUE
-        # =========================
+        # <--------------------------->
         if self.ataque:
             self.temp += dt
             if self.temp > 0.25:
