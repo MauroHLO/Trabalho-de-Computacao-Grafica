@@ -1,11 +1,9 @@
 from typing import Optional, Tuple, List
 
-# Helper: limites XZ da plataforma (mesma regra usada em Plataforma.contencao)
 def plataforma_bounds(p) -> Tuple[float, float, float, float]:
     x_min = min(p.x - p.w / 2.0, p.x + p.w / 2.0)
     x_max = max(p.x - p.w / 2.0, p.x + p.w / 2.0)
 
-    # IMPORTANTE: respeita o mesmo "d/1.75" do contencao()
     z_min = min(p.z - p.d / 1.75, p.z + p.d / 1.75)
     z_max = max(p.z - p.d / 1.75, p.z + p.d / 1.75)
     return x_min, x_max, z_min, z_max
@@ -40,3 +38,4 @@ def clamp_dentro_plataforma(x: float, z: float, p, margem: float = 0.35) -> Tupl
     if z < z_min: z = z_min
     if z > z_max: z = z_max
     return x, z
+
