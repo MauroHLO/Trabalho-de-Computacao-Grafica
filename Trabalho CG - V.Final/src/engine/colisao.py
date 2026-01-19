@@ -32,8 +32,6 @@ def liang_barsky_3d(p0, p1, aabb):
             if t < t_min: return False
             if t < t_max: t_max = t
         return True
-
-    # Testa as 6 faces do volume 3D
     if not test(-dx, x0 - xmin): return False
     if not test(dx, xmax - x0): return False
     if not test(-dy, y0 - ymin): return False
@@ -42,3 +40,4 @@ def liang_barsky_3d(p0, p1, aabb):
     if not test(dz, zmax - z0): return False
 
     return t_min <= t_max
+
