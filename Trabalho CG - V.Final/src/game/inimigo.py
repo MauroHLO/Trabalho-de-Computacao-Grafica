@@ -16,14 +16,14 @@ class Inimigo:
         self.burst_left = 0
         self.burst_gap = 0.12
         self.burst_timer = 0.0
-        self.can_shoot = True  # controlado pela main (opportunist)
+        self.can_shoot = True  # oportunista
 
-        # --- Trechos / leash (Zelda feel)
+        # --- Trechos
         self.home_x = self.x
         self.home_z = self.z
         self.leash_radius = 7.0
         self.trecho_id = -1
-        self.ativo_no_trecho = True  # será controlado pela Fase
+        self.ativo_no_trecho = True
 
         # ---- VIDA
         self.hp_max = 3 if tipoINI == "melee" else 2
@@ -227,10 +227,7 @@ class Inimigo:
             self.y = 0.5  # centro no chão
 
             # =========================
-            # ✅ COLISÃO CONTRA RAMPAS (ESSENCIAL)
-            # - inimigo do chão NÃO entra no footprint da rampa
-            # - paredes laterais empurram
-            # - fallback: reverte movimento se ainda ficar dentro
+            # COLISÃO CONTRA RAMPAS
             # =========================
             if rampas:
                 entrou_em_rampa = False
@@ -238,12 +235,10 @@ class Inimigo:
                     if r.contencao(self.x, self.z):
                         entrou_em_rampa = True
 
-                        # tenta empurrar pelas paredes laterais
                         p_esq, p_dir = r.paredes_laterais(espessura=0.20)
                         self._empurrar_fora_aabb(p_esq)
                         self._empurrar_fora_aabb(p_dir)
 
-                        # se ainda estiver dentro do footprint, desfaz movimento
                         if r.contencao(self.x, self.z):
                             self.x, self.z = old_x, old_z
 
@@ -274,3 +269,4 @@ class Inimigo:
         half = 0.5
         return (self.x-half, self.y-half, self.z-half,
                 self.x+half, self.y+half, self.z+half)
+
