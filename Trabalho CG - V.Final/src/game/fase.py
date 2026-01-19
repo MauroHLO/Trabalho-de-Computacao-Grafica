@@ -94,10 +94,7 @@ class Fase:
             e = Inimigo(sp.x, sp.z, cor_inim, sp.tipo)
 
             # =========================
-            # CAMADA DO TERRENO (alto vs chão)
-            # - inimigo em plataforma NÃO desce
-            # - inimigo no chão NÃO sobe
-            # - MAS: se spawn cair em rampa/plataforma, y sobe pra cima (não nasce dentro)
+            # CAMADA DO TERRENO
             # =========================
             plat = achar_plataforma_embaixo(e.x, e.z, plataformas)
 
@@ -117,7 +114,6 @@ class Fase:
                 e.terrain_layer = "chao"
                 e.plat_ref = None
 
-                # ✅ se o ponto caiu em rampa, ele nasce EM CIMA da rampa (não dentro)
                 e.y = y_spawn_seguro(e.x, e.z, plataformas, rampas, half=e.tam / 2.0)
 
             prof = cfg_mundo[sp.tipo]
@@ -172,3 +168,4 @@ class Fase:
             if t.chave and (not t.limpo):
                 return False
         return True
+
