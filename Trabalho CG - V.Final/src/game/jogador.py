@@ -38,6 +38,7 @@ class Player:
 
         if self.inv_timer > 0:
             self.inv_timer -= dt
+            
         # <--------------------------->
         # MOVIMENTO
         # <--------------------------->
@@ -47,7 +48,7 @@ class Player:
         if keys.get(glfw.KEY_A): dz -= 1
         if keys.get(glfw.KEY_D): dz += 1
 
-        old_x, old_z = self.x, self.z  # ✅ para poder reverter se bater
+        old_x, old_z = self.x, self.z 
 
         if dx or dz:
             L = math.hypot(dx, dz)
@@ -114,10 +115,8 @@ class Player:
             z_max = p.z + abs(p.d) / 2.0
             y_top = float(p.h)
 
-            # só bloqueia lateral se o player estiver abaixo do topo 
             if (self.y - half) < (y_top - margem_subida):
                 if (x_min - half <= self.x <= x_max + half) and (z_min - half <= self.z <= z_max + half):
-                    # empurra para fora 
                     pen_left  = abs(self.x - (x_min - half))
                     pen_right = abs((x_max + half) - self.x)
                     pen_front = abs(self.z - (z_min - half))
@@ -156,3 +155,4 @@ class Player:
         half = 0.5
         return (self.x-half, self.y-half, self.z-half,
                 self.x+half, self.y+half, self.z+half)
+
