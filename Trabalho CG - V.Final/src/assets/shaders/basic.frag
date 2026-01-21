@@ -21,12 +21,12 @@ uniform bool uUnlit;
 // =========================
 // Luz Direcional
 // =========================
-uniform vec3 uDirLightDir;       // direção DA LUZ (ex: vindo do alto)
+uniform vec3 uDirLightDir;
 uniform vec3 uDirLightColor;
 uniform float uDirLightIntensity;
 
-// ambiente global (pra não ficar tudo preto)
-uniform float uAmbientStrength;  // ex: 0.18
+// ambiente
+uniform float uAmbientStrength;
 
 // =========================
 // Luzes Pontuais (4)
@@ -35,8 +35,8 @@ uniform float uAmbientStrength;  // ex: 0.18
 
 uniform vec3  uPointPos[NUM_POINT_LIGHTS];
 uniform vec3  uPointColor[NUM_POINT_LIGHTS];
-uniform float uPointIntensity[NUM_POINT_LIGHTS]; // força
-uniform float uPointRange[NUM_POINT_LIGHTS];     // alcance “macio”
+uniform float uPointIntensity[NUM_POINT_LIGHTS];
+uniform float uPointRange[NUM_POINT_LIGHTS];
 
 // -------------------------
 // Funções auxiliares
@@ -51,7 +51,7 @@ float pointAttenuation(float dist, float range) {
 
 void main() {
 
-    // Albedo base: cor do material (com ou sem textura)
+    // Cor base
     vec3 albedo = uTint;
 
     if (uUseTex) {
@@ -76,7 +76,7 @@ void main() {
     // =========================
     // DIRECIONAL (Phong simples)
     // =========================
-    vec3 Ld = normalize(-uDirLightDir); // direção DO FRAG em direção à luz
+    vec3 Ld = normalize(-uDirLightDir);
     float diffD = max(dot(N, Ld), 0.0);
 
     vec3 Rd = reflect(-Ld, N);
@@ -110,4 +110,5 @@ void main() {
 
     vec3 color = ambient + dirLight + pointSum;
     fragCor = vec4(color, 1.0);
+
 }
